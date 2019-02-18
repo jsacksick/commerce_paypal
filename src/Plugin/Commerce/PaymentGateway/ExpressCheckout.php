@@ -287,13 +287,14 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     // Set the Payer ID used to finalize payment.
     $order_express_checkout_data['payerid'] = $paypal_response['PAYERID'];
-    $order->setData('paypal_express_checkout', $order_express_checkout_data);
 
+    // Note: There is no need to save the order here, because it will be
+    // saved by the Commerce PaymentController after onReturn() completes.
+    $order->setData('paypal_express_checkout', $order_express_checkout_data);
     // If the user is anonymous, add their PayPal e-mail to the order.
     if (empty($order->mail)) {
       $order->setEmail($paypal_response['EMAIL']);
     }
-    $order->save();
 
     // DoExpressCheckoutPayment API Operation (NVP).
     // Completes an Express Checkout transaction.
