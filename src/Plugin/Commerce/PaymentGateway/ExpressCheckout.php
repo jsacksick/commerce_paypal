@@ -198,12 +198,12 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     $form['solution_type'] = [
       '#type' => 'radios',
-      '#title' => t('Type of checkout flow'),
-      '#description' => t('Express Checkout Account Optional (ECAO) where PayPal accounts are not required for payment may not be available in all markets.'),
+      '#title' => $this->t('Type of checkout flow'),
+      '#description' => $this->t('Express Checkout Account Optional (ECAO) where PayPal accounts are not required for payment may not be available in all markets.'),
       '#options' => [
-        'Mark' => t('Require a PayPal account (this is the standard configuration).'),
-        'SoleLogin' => t('Allow PayPal AND credit card payments, defaulting to the PayPal form.'),
-        'SoleBilling' => t('Allow PayPal AND credit card payments, defaulting to the credit card form.'),
+        'Mark' => $this->t('Require a PayPal account (this is the standard configuration).'),
+        'SoleLogin' => $this->t('Allow PayPal AND credit card payments, defaulting to the PayPal form.'),
+        'SoleBilling' => $this->t('Allow PayPal AND credit card payments, defaulting to the credit card form.'),
       ],
       '#default_value' => $this->configuration['solution_type'],
     ];
