@@ -2,6 +2,8 @@
 
 namespace Drupal\commerce_paypal;
 
+use Drupal\commerce_order\AdjustmentTransformerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
 use GuzzleHttp\HandlerStack;
@@ -34,6 +36,20 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
   protected $state;
 
   /**
+   * The adjustment transformer.
+   *
+   * @var \Drupal\commerce_order\AdjustmentTransformerInterface
+   */
+  protected $adjustmentTransformer;
+
+  /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * Array of all instantiated PayPal Checkout SDKs.
    *
    * @var \Drupal\commerce_paypal\CheckoutSdkInterface[]
@@ -47,12 +63,18 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
    *   The client factory.
    * @param \GuzzleHttp\HandlerStack $stack
    *   The handler stack.
+   * @param \Drupal\commerce_order\AdjustmentTransformerInterface $adjustment_transformer
+   *   The adjustment transformer.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
    */
-  public function __construct(ClientFactory $client_factory, HandlerStack $stack, StateInterface $state) {
+  public function __construct(ClientFactory $client_factory, HandlerStack $stack, AdjustmentTransformerInterface $adjustment_transformer, ModuleHandlerInterface $module_handler, StateInterface $state) {
     $this->clientFactory = $client_factory;
     $this->stack = $stack;
+    $this->adjustmentTransformer = $adjustment_transformer;
+    $this->moduleHandler = $module_handler;
     $this->state = $state;
   }
 
@@ -63,7 +85,7 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
     $client_id = $configuration['client_id'];
     if (!isset($this->instances[$client_id])) {
       $client = $this->getClient($configuration);
-      $this->instances[$client_id] = new CheckoutSdk($client, $configuration);
+      $this->instances[$client_id] = new CheckoutSdk($client, $this->adjustmentTransformer, $this->moduleHandler, $configuration);
     }
 
     return $this->instances[$client_id];

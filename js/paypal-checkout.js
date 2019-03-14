@@ -4,7 +4,16 @@
   Drupal.paypalCheckout = {
     renderButtons: function(settings) {
       $(settings['elementSelector']).once().each(function() {
-        paypal.Buttons().render('#' + $(this).attr('id'));
+        paypal.Buttons({
+          createOrder: function() {
+            return fetch(settings.onCreateUri)
+              .then(function(res) {
+                return res.json();
+              }).then(function(data) {
+                return data.id ? data.id : '';
+              });
+          }
+        }).render('#' + $(this).attr('id'));
       });
     },
     initialize: function (context, settings) {

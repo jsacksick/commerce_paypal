@@ -24,6 +24,7 @@ class SmartPaymentButtons extends RenderElement {
     return [
       '#html_id' => 'paypal-buttons-container',
       '#commit' => FALSE,
+      '#order_id' => NULL,
       '#payment_gateway' => NULL,
       '#pre_render' => [
         [$class, 'preRender'],
@@ -59,6 +60,10 @@ class SmartPaymentButtons extends RenderElement {
       ->setAttribute('id', Html::getUniqueId($element['#html_id']))
       ->setAttribute('class', 'paypal-buttons-container');
 
+    $route_options = [
+      'commerce_payment_gateway' => $payment_gateway->id(),
+      'commerce_order' => $element['#order_id'],
+    ];
     $options = [
       'query' => [
         'client-id' => $configuration['client_id'],
@@ -70,6 +75,7 @@ class SmartPaymentButtons extends RenderElement {
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
       'src' => Url::fromUri('https://www.paypal.com/sdk/js', $options)->toString(),
       'elementSelector' => '.paypal-buttons-container',
+      'onCreateUri' => Url::fromRoute('commerce_paypal.checkout.create', $route_options)->toString(),
     ];
     $element['#markup'] = Markup::create(sprintf('<div %s></div>', $attributes));
     return $element;
