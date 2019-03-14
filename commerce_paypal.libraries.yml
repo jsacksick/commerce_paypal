@@ -1,4 +1,7 @@
 paypal_checkout:
+  css:
+    theme:
+      css/paypal-checkout.css: {}
   js:
     js/paypal-checkout.js: {}
   dependencies:
