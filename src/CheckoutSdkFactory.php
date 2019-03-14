@@ -113,6 +113,9 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
     }
     $options = [
       'base_uri' => $base_uri,
+      'headers' => [
+        'PayPal-Partner-Attribution-Id' => 'CommerceGuys_Cart_SPB',
+      ],
     ];
     $client = $this->clientFactory->fromOptions($options);
     $config = [
