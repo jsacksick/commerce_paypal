@@ -11,6 +11,7 @@ use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
 use Drupal\commerce_paypal\CheckoutSdkFactoryInterface;
+use Drupal\commerce_price\Calculator;
 use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Json;
@@ -279,8 +280,70 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * {@inheritdoc}
    */
-  public function deletePaymentMethod(PaymentMethodInterface $payment_method) {
-    // TODO: Implement deletePaymentMethod() method.
+  public function deletePaymentMethod(PaymentMethodInterface $payment_method) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
+    $this->assertPaymentState($payment, ['authorization']);
+    // If not specified, capture the entire amount.
+    $amount = $amount ?: $payment->getAmount();
+    $remote_id = $payment->getRemoteId();
+    $params = [
+      'amount' => [
+        'value' => Calculator::trim($amount->getNumber()),
+        'currency_code' => $amount->getCurrencyCode(),
+      ],
+    ];
+
+    if ($amount->equals($payment->getAmount())) {
+      $params['final_capture'] = TRUE;
+    }
+
+    try {
+      $sdk = $this->checkoutSdkFactory->get($this->configuration);
+
+      // If the payment was authorized more than 3 days ago, attempt to
+      // reauthorize it.
+      if (($this->time->getRequestTime() >= ($payment->getAuthorizedTime() + (86400 * 3))) && !$payment->isExpired()) {
+        $sdk->reAuthorizePayment($remote_id, ['amount' => $params['amount']]);
+      }
+
+      $response = $sdk->capturePayment($remote_id, $params);
+      $response = Json::decode($response->getBody()->getContents());
+    }
+    catch (ClientException $exception) {
+      throw new PaymentGatewayException('An error occurred while capturing the authorized payment.');
+    }
+    $remote_state = strtolower($response['status']);
+    $state = $this->mapPaymentState('capture', $remote_state);
+
+    if (!$state) {
+      throw new PaymentGatewayException('Unhandled payment state.');
+    }
+    $payment->setState('completed');
+    $payment->setAmount($amount);
+    $payment->setRemoteState($remote_state);
+    $payment->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function voidPayment(PaymentInterface $payment) {
+    $this->assertPaymentState($payment, ['authorization']);
+    try {
+      $sdk = $this->checkoutSdkFactory->get($this->configuration);
+      $response = $sdk->voidPayment($payment->getRemoteId());
+    }
+    catch (ClientException $exception) {
+      throw new PaymentGatewayException('An error occurred while voiding the payment.');
+    }
+    if ($response->getStatusCode() == Response::HTTP_NO_CONTENT) {
+      $payment->setState('authorization_voided');
+      $payment->save();
+    }
   }
 
   /**
@@ -291,7 +354,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     $paypal_total = Price::fromArray(['number' => $paypal_amount['value'], 'currency_code' => $paypal_amount['currency_code']]);
 
     // Make sure the order total matches the total we get from PayPal.
-    if ($paypal_total != $order->getTotalPrice() || !in_array($paypal_order['status'], ['APPROVED', 'COMPLETED'])) {
+    if (!$paypal_total->equals($order->getTotalPrice()) || !in_array($paypal_order['status'], ['APPROVED', 'COMPLETED'])) {
       return new Response('', Response::HTTP_BAD_REQUEST);
     }
 
@@ -355,13 +418,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    *
    * @param string $type
    *   The payment type. One of "authorize" or "capture"
-   * @param string $paypal_state
+   * @param string $remote_state
    *   The PayPal remote payment state.
    *
    * @return string
    *   The corresponding local payment state.
    */
-  protected function mapPaymentState($type, $paypal_state) {
+  protected function mapPaymentState($type, $remote_state) {
     $mapping = [
       'authorize' => [
         'created' => 'authorization',
@@ -373,7 +436,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         'partially_refunded' => 'partially_refunded',
       ],
     ];
-    return isset($mapping[$type][$paypal_state]) ? $mapping[$type][$paypal_state] : '';
+    return isset($mapping[$type][$remote_state]) ? $mapping[$type][$remote_state] : '';
   }
 
 }

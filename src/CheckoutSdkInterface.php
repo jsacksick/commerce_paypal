@@ -65,4 +65,38 @@ interface CheckoutSdkInterface {
    */
   public function captureOrder($remote_id);
 
+  /**
+   * Captures an authorized payment, by ID.
+   *
+   * @param $authorization_id
+   *   The PayPal-generated ID for the authorized payment to capture.
+   * @param array $parameters
+   *   (optional An array of parameters to pass as the request body.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function capturePayment($authorization_id, array $parameters = []);
+
+  /**
+   * Reauthorizes an authorized PayPal account payment, by ID.
+   *
+   * @param $authorization_id
+   *   The PayPal-generated ID of the authorized payment to reauthorize.
+   * @param array $parameters
+   *   (optional An array of parameters to pass as the request body.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function reAuthorizePayment($authorization_id, array $parameters = []);
+
+  /**
+   * Voids, or cancels, an authorized payment, by ID.
+   *
+   * @param $authorization_id
+   *   The PayPal-generated ID of the authorized payment to void.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function voidPayment($authorization_id);
+
 }

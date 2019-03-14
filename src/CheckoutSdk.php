@@ -125,6 +125,48 @@ class CheckoutSdk implements CheckoutSdkInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function capturePayment($authorization_id, array $parameters = []) {
+    $options = [
+      'headers' => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    if ($parameters) {
+      $options['json'] = $parameters;
+    }
+    return $this->client->post(sprintf('/v2/payments/authorizations/%s/capture', $authorization_id), $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function reAuthorizePayment($authorization_id, array $parameters = []) {
+    $options = [
+      'headers' => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    if ($parameters) {
+      $options['json'] = $parameters;
+    }
+    return $this->client->post(sprintf('/v2/payments/authorizations/%s/reauthorize', $authorization_id), $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function voidPayment($authorization_id, array $parameters = []) {
+    $options = [
+      'headers' => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    return $this->client->post(sprintf('/v2/payments/authorizations/%s/void', $authorization_id), $options);
+  }
+
+  /**
    * Prepare the order request parameters.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
