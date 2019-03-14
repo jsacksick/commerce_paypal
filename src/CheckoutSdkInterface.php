@@ -23,4 +23,26 @@ interface CheckoutSdkInterface {
    */
   public function createOrder(OrderInterface $order);
 
+  /**
+   * Get an existing order from PayPal.
+   *
+   * @param $remote_id
+   *   The PayPal order ID.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function getOrder($remote_id);
+
+  /**
+   * Updates an existing PayPal order.
+   *
+   * @param $remote_id
+   *   The PayPal order ID.
+   * @param OrderInterface $order
+   *   The order.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function updateOrder($remote_id, OrderInterface $order);
+
 }

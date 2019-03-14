@@ -83,6 +83,28 @@ class CheckoutSdk implements CheckoutSdkInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getOrder($remote_id) {
+    return $this->client->get(sprintf('/v2/checkout/orders/%s', $remote_id));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function updateOrder($remote_id, OrderInterface $order) {
+    $params = $this->prepareOrderRequest($order);
+    $update_params = [
+      [
+        'op' => 'replace',
+        'path' => "/purchase_units/@reference_id=='default'",
+        'value' => $params['purchase_units'][0],
+      ],
+    ];
+    return $this->client->patch(sprintf('/v2/checkout/orders/%s', $remote_id), ['json' => $update_params]);
+  }
+
+  /**
    * Prepare the order request parameters.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
