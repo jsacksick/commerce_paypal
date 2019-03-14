@@ -349,6 +349,45 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * {@inheritdoc}
    */
+  public function refundPayment(PaymentInterface $payment, Price $amount = null) {
+    $this->assertPaymentState($payment, ['completed', 'partially_refunded']);
+    // If not specified, refund the entire amount.
+    $amount = $amount ?: $payment->getAmount();
+    $this->assertRefundAmount($payment, $amount);
+
+    $old_refunded_amount = $payment->getRefundedAmount();
+    $new_refunded_amount = $old_refunded_amount->add($amount);
+    $params = [
+      'amount' => [
+        'value' => Calculator::trim($amount->getNumber()),
+        'currency_code' => $amount->getCurrencyCode(),
+      ],
+    ];
+    if ($new_refunded_amount->lessThan($payment->getAmount())) {
+      $payment->setState('partially_refunded');
+    }
+    else {
+      $payment->setState('refunded');
+    }
+    try {
+      $sdk = $this->checkoutSdkFactory->get($this->configuration);
+      $response = $sdk->refundPayment($payment->getRemoteId(), $params);
+      $response = Json::decode($response->getBody()->getContents());
+    }
+    catch (ClientException $exception) {
+      throw new PaymentGatewayException('An error occurred while refunding the payment.');
+    }
+
+    if (strtolower($response['status']) !== 'completed') {
+      throw new PaymentGatewayException(sprintf('Invalid state returned by PayPal. Expected: ("%s"), Actual: ("%s").', 'COMPLETED', $response['status']));
+    }
+    $payment->setRefundedAmount($new_refunded_amount);
+    $payment->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function onApprove(OrderInterface $order, array $paypal_order) {
     $paypal_amount = $paypal_order['purchase_units'][0]['amount'];
     $paypal_total = Price::fromArray(['number' => $paypal_amount['value'], 'currency_code' => $paypal_amount['currency_code']]);

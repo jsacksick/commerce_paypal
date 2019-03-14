@@ -90,6 +90,18 @@ interface CheckoutSdkInterface {
   public function reAuthorizePayment($authorization_id, array $parameters = []);
 
   /**
+   * Refunds a captured payment, by ID.
+   *
+   * @param $capture_id
+   *   The PayPal-generated ID for the captured payment to refund.
+   * @param array $parameters
+   *   (optional An array of parameters to pass as the request body.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function refundPayment($capture_id, array $parameters = []);
+
+  /**
    * Voids, or cancels, an authorized payment, by ID.
    *
    * @param $authorization_id

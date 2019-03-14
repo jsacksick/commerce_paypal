@@ -157,6 +157,21 @@ class CheckoutSdk implements CheckoutSdkInterface {
   /**
    * {@inheritdoc}
    */
+  public function refundPayment($capture_id, array $parameters = []) {
+    $options = [
+      'headers' => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+    if ($parameters) {
+      $options['json'] = $parameters;
+    }
+    return $this->client->post(sprintf('/v2/payments/captures/%s/refund', $capture_id), $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function voidPayment($authorization_id, array $parameters = []) {
     $options = [
       'headers' => [
