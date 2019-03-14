@@ -45,4 +45,24 @@ interface CheckoutSdkInterface {
    */
   public function updateOrder($remote_id, OrderInterface $order);
 
+  /**
+   * Authorize payment for order.
+   *
+   * @param $remote_id
+   *   The PayPal order ID.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function authorizeOrder($remote_id);
+
+  /**
+   * Capture payment for order.
+   *
+   * @param $remote_id
+   *   The PayPal order ID.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function captureOrder($remote_id);
+
 }

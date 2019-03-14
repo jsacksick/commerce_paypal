@@ -105,6 +105,26 @@ class CheckoutSdk implements CheckoutSdkInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function authorizeOrder($remote_id) {
+    $headers = [
+      'Content-Type' => 'application/json',
+    ];
+    return $this->client->post(sprintf('/v2/checkout/orders/%s/authorize', $remote_id), ['headers' => $headers]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function captureOrder($remote_id) {
+    $headers = [
+      'Content-Type' => 'application/json',
+    ];
+    return $this->client->post(sprintf('/v2/checkout/orders/%s/capture', $remote_id), ['headers' => $headers]);
+  }
+
+  /**
    * Prepare the order request parameters.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order

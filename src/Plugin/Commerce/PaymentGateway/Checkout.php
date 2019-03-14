@@ -5,12 +5,15 @@ namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
+use Drupal\commerce_payment\Exception\HardDeclineException;
+use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
 use Drupal\commerce_paypal\CheckoutSdkFactoryInterface;
 use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -197,7 +200,61 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    * {@inheritdoc}
    */
   public function createPayment(PaymentInterface $payment, $capture = TRUE) {
-    // TODO: Implement createPayment() method.
+    $sdk = $this->checkoutSdkFactory->get($this->configuration);
+    $paypal_order_id = $payment->getPaymentMethod()->getRemoteId();
+    try {
+      $sdk->updateOrder($paypal_order_id, $payment->getOrder());
+      $request = $sdk->getOrder($paypal_order_id);
+      $paypal_order = Json::decode($request->getBody()->getContents());
+    }
+    catch (ClientException $exception) {
+      throw new PaymentGatewayException('Could not retrieve the order in PayPal.');
+    }
+    if (!in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
+      throw new PaymentGatewayException('Wrong remote order status.');
+    }
+    $intent = strtolower($paypal_order['intent']);
+    try {
+      if ($intent == 'capture') {
+        $response = $sdk->captureOrder($paypal_order_id);
+        $paypal_order = Json::decode($response->getBody()->getContents());
+        $remote_payment = $paypal_order['purchase_units'][0]['payments']['captures'][0];
+        $payment->setRemoteId($remote_payment['id']);
+      }
+      else {
+        $response = $sdk->authorizeOrder($paypal_order_id);
+        $paypal_order = Json::decode($response->getBody()->getContents());
+        $remote_payment = $paypal_order['purchase_units'][0]['payments']['authorizations'][0];
+
+        if (isset($remote_payment['expiration_time'])) {
+          $expiration = new \DateTime($remote_payment['expiration_time']);
+          $payment->setExpiresTime($expiration->getTimestamp());
+        }
+      }
+    }
+    catch (ClientException $exception) {
+      throw new PaymentGatewayException('The provided payment method is no longer valid.');
+    }
+    $remote_state = strtolower($remote_payment['status']);
+    $state = $this->mapPaymentState($intent, $remote_state);
+
+    // If we couldn't find a state to map to, stop here.
+    if (!$state) {
+      throw new PaymentGatewayException('The PayPal payment is in a state we cannot handle.');
+    }
+
+    if (in_array($remote_state, ['denied', 'expired', 'declined'])) {
+      throw new HardDeclineException(sprintf('Could not %s the payment.', $intent));
+    }
+    $payment_amount = Price::fromArray([
+      'number' => $remote_payment['amount']['value'],
+      'currency_code' => $remote_payment['amount']['currency_code'],
+    ]);
+    $payment->setAmount($payment_amount);
+    $payment->setState($state);
+    $payment->setRemoteId($remote_payment['id']);
+    $payment->setRemoteState($remote_state);
+    $payment->save();
   }
 
   /**
@@ -291,6 +348,32 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
     $redirect_uri = Url::fromRoute('commerce_checkout.form', $options);
     return new JsonResponse(['redirectUri' => $redirect_uri->toString()]);
+  }
+
+  /**
+   * Map a PayPal payment state to a local one.
+   *
+   * @param string $type
+   *   The payment type. One of "authorize" or "capture"
+   * @param string $paypal_state
+   *   The PayPal remote payment state.
+   *
+   * @return string
+   *   The corresponding local payment state.
+   */
+  protected function mapPaymentState($type, $paypal_state) {
+    $mapping = [
+      'authorize' => [
+        'created' => 'authorization',
+        'voided' => 'authorization_voided',
+        'expired' => 'authorization_expired',
+      ],
+      'capture' => [
+        'completed' => 'completed',
+        'partially_refunded' => 'partially_refunded',
+      ],
+    ];
+    return isset($mapping[$type][$paypal_state]) ? $mapping[$type][$paypal_state] : '';
   }
 
 }
