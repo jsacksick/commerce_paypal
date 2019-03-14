@@ -8,7 +8,7 @@ services:
     arguments: ['@entity_type.manager', '@commerce_paypal.logger', '@http_client']
   commerce_paypal.checkout_sdk_factory:
     class: Drupal\commerce_paypal\CheckoutSdkFactory
-    arguments: ['@http_client_factory']
+    arguments: ['@http_client_factory', '@http_handler_stack', '@state']
   commerce_paypal.checkout_sdk:
     abstract: true
     class: Drupal\commerce_paypal\CheckoutSdk

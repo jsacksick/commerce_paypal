@@ -3,6 +3,9 @@
 namespace Drupal\commerce_paypal;
 
 use Drupal\Core\Http\ClientFactory;
+use Drupal\Core\State\StateInterface;
+use GuzzleHttp\HandlerStack;
+use Sainsburys\Guzzle\Oauth2\Middleware\OAuthMiddleware;
 
 /**
  * Defines a factory for our custom PayPal checkout SDK.
@@ -17,6 +20,20 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
   protected $clientFactory;
 
   /**
+   * The handler stack.
+   *
+   * @var \GuzzleHttp\HandlerStack
+   */
+  protected $stack;
+
+  /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * Array of all instantiated PayPal Checkout SDKs.
    *
    * @var \Drupal\commerce_paypal\CheckoutSdkInterface[]
@@ -28,9 +45,15 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
    *
    * @param \Drupal\Core\Http\ClientFactory $client_factory
    *   The client factory.
+   * @param \GuzzleHttp\HandlerStack $stack
+   *   The handler stack.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state service.
    */
-  public function __construct(ClientFactory $client_factory) {
+  public function __construct(ClientFactory $client_factory, HandlerStack $stack, StateInterface $state) {
     $this->clientFactory = $client_factory;
+    $this->stack = $stack;
+    $this->state = $state;
   }
 
   /**
@@ -69,6 +92,26 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
     $options = [
       'base_uri' => $base_uri,
     ];
+    $client = $this->clientFactory->fromOptions($options);
+    $config = [
+      ClientCredentials::CONFIG_CLIENT_ID => $config['client_id'],
+      ClientCredentials::CONFIG_CLIENT_SECRET => $config['secret'],
+      ClientCredentials::CONFIG_TOKEN_URL => '/v1/oauth2/token',
+    ];
+    $grant_type = new ClientCredentials($client, $config);
+    $middleware = new OAuthMiddleware($client, $grant_type);
+    // Check if we've already requested an oauth2 token, note that we do not
+    // need to check for the expires timestamp here as the middleware is already
+    // taking care of that.
+    // @todo: This should support multiple tokens.
+    $token = $this->state->get('commerce_paypal.oauth2_token');
+    if (!empty($token)) {
+      $middleware->setAccessToken($token['token'], 'client_credentials', $token['expires']);
+    }
+    $this->stack->push($middleware->onBefore());
+    $this->stack->push($middleware->onFailure(2));
+    $options['handler'] = $this->stack;
+    $options['auth'] = 'oauth2';
     return $this->clientFactory->fromOptions($options);
   }
 
