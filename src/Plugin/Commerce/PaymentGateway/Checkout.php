@@ -22,7 +22,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "paypal_checkout",
  *   label = @Translation("PayPal (Checkout)"),
  *   display_label = @Translation("PayPal"),
- *   payment_method_types = {"credit_card"},
+ *   payment_method_types = {"paypal_checkout"},
+ *   forms = {
+ *     "add-payment-method" = "Drupal\commerce_paypal\PluginForm\Checkout\PaymentMethodAddForm",
+ *   },
  *   credit_card_types = {
  *     "amex", "discover", "mastercard", "visa",
  *   },
@@ -196,7 +199,19 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    * {@inheritdoc}
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
-    // TODO: Implement createPaymentMethod() method.
+    // Note that we don't actually call the PayPal API for setting up the
+    // transaction (i.e creating the order) as this is being handled by the
+    // CheckoutController which is called by the JS sdk.
+    // We only do that once the actual Smart payment buttons are clicked.
+    $payment_method->set('flow', 'mark');
+    /** @var \Drupal\profile\Entity\ProfileInterface $shipping_profile $profile */
+    // Create an empty profile in order for PaymentInformation not to crash.
+    $profile = $this->entityTypeManager->getStorage('profile')->create([
+      'type' => 'customer',
+    ]);
+    $payment_method->setBillingProfile($profile);
+    $payment_method->setReusable(FALSE);
+    $payment_method->save();
   }
 
   /**
