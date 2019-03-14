@@ -252,12 +252,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         $payment_method->setRemoteId($paypal_order['id']);
         $payment_method->save();
       }
-
-      // Redirect to the payment step to capture/authorize the payment
-      // when in the "mark" flow.
-      // @todo: Should we make this more generic/configurable?
+      /**
+       * @var \Drupal\commerce_checkout\Entity\CheckoutFlowInterface $checkout_flow
+       */
+      $checkout_flow = $order->get('checkout_flow')->entity;
+      $current_checkout_step = $order->get('checkout_step')->value;
       $order->set('payment_gateway', $this->entityId);
-      $order->set('checkout_step', 'payment');
+      $order->set('checkout_step', $checkout_flow->getPlugin()->getNextStepId($current_checkout_step));
       $order->save();
     }
     else {
