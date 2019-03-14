@@ -4,8 +4,14 @@ namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
+use Drupal\commerce_payment\PaymentMethodTypeManager;
+use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the Paypal Checkout payment gateway.
@@ -23,6 +29,55 @@ use Drupal\Core\Form\FormStateInterface;
 class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
 
   /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Constructs a new Checkout object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\commerce_payment\PaymentTypeManager $payment_type_manager
+   *   The payment type manager.
+   * @param \Drupal\commerce_payment\PaymentMethodTypeManager $payment_method_type_manager
+   *   The payment method type manager.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ModuleHandlerInterface $module_handler, CheckoutSdkFactoryInterface $checkout_sdk_factory) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
+    $this->moduleHandler = $module_handler;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+      $container->get('plugin.manager.commerce_payment_type'),
+      $container->get('plugin.manager.commerce_payment_method_type'),
+      $container->get('datetime.time'),
+      $container->get('module_handler'),
+      $container->get('commerce_paypal.checkout_sdk_factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
@@ -30,6 +85,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'client_id' => '',
       'secret' => '',
       'intent' => 'capture',
+      'shipping_preference' => 'get_from_file',
     ] + parent::defaultConfiguration();
   }
 
@@ -62,6 +118,17 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       ],
       '#default_value' => $this->configuration['intent'],
     ];
+    $form['shipping_preference'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Shipping address collection'),
+      '#options' => [
+        'no_shipping' => $this->t('Do not ask for a shipping address at PayPal.'),
+        'get_from_file' => $this->t('Ask for a shipping address at PayPal even if the order already has one.'),
+        'set_provided_address' => $this->t('Ask for a shipping address at PayPal if the order does not have one yet.'),
+      ],
+      '#default_value' => $this->configuration['shipping_preference'],
+      '#access' => $this->moduleHandler->moduleExists('commerce_shipping'),
+    ];
 
     return $form;
   }
@@ -78,6 +145,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     $this->configuration['client_id'] = $values['client_id'];
     $this->configuration['secret'] = $values['secret'];
     $this->configuration['intent'] = $values['intent'];
+    $this->configuration['shipping_preference'] = $values['shipping_preference'];
   }
 
   /**

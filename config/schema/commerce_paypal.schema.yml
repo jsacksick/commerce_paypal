@@ -10,6 +10,9 @@ commerce_payment.commerce_payment_gateway.plugin.paypal_checkout:
     intent:
       type: string
       label: 'Intent'
+    shipping_preference:
+      type: string
+      label: 'Shipping preference'
 commerce_payment.commerce_payment_gateway.plugin.paypal_express_checkout:
   type: commerce_payment_gateway_configuration
   mapping:
