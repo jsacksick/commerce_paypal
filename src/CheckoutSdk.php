@@ -17,7 +17,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
   protected $client;
 
   /**
-   * The payment gateway configuration.
+   * The payment gateway plugin configuration.
    *
    * @var array
    */
@@ -34,6 +34,18 @@ class CheckoutSdk implements CheckoutSdkInterface {
   public function __construct(ClientInterface $client, array $config) {
     $this->client = $client;
     $this->config = $config;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAccessToken() {
+    return $this->client->post('/v1/oauth2/token', [
+      'auth' => [$this->config['client_id'], $this->config['secret']],
+      'form_params' => [
+        'grant_type' => 'client_credentials',
+      ],
+    ]);
   }
 
 }

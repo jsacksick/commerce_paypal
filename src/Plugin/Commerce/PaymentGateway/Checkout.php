@@ -7,10 +7,12 @@ use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
+use Drupal\commerce_paypal\CheckoutSdkFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -36,6 +38,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
   protected $moduleHandler;
 
   /**
+   * The PayPal Checkout SDK factory.
+   *
+   * @var \Drupal\commerce_paypal\CheckoutSdkFactoryInterface
+   */
+  protected $checkoutSdkFactory;
+
+  /**
    * Constructs a new Checkout object.
    *
    * @param array $configuration
@@ -54,10 +63,15 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    *   The time.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\commerce_paypal\CheckoutSdkFactoryInterface $checkout_sdk_factory
+   *   The PayPal Checkout SDK factory.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ModuleHandlerInterface $module_handler) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ModuleHandlerInterface $module_handler, CheckoutSdkFactoryInterface $checkout_sdk_factory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
     $this->moduleHandler = $module_handler;
+    // Don't instantiate the client from there to be able to test the
+    // connectivity after updating the client_id & secret.
+    $this->checkoutSdkFactory = $checkout_sdk_factory;
   }
 
   /**
@@ -72,7 +86,8 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $container->get('plugin.manager.commerce_payment_type'),
       $container->get('plugin.manager.commerce_payment_method_type'),
       $container->get('datetime.time'),
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('commerce_paypal.checkout_sdk_factory')
     );
   }
 
@@ -130,6 +145,29 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+    parent::validateConfigurationForm($form, $form_state);
+    if ($form_state->getErrors()) {
+      return;
+    }
+    $values = $form_state->getValue($form['#parents']);
+    $sdk = $this->checkoutSdkFactory->get($values);
+    // Make sure we query for a fresh access token.
+    \Drupal::state()->delete('commerce_paypal.oauth2_token');
+    try {
+      $sdk->getAccessToken();
+      $this->messenger()->addMessage($this->t('Connectivity to PayPal successfully verified.'));
+    }
+    catch (ClientException $exception) {
+      $this->messenger()->addError($this->t('Invalid client_id or secret specified.'));
+      $form_state->setError($form['client_id']);
+      $form_state->setError($form['secret']);
+    }
   }
 
   /**
