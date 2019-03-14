@@ -29,6 +29,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     return [
       'client_id' => '',
       'secret' => '',
+      'intent' => 'capture',
     ] + parent::defaultConfiguration();
   }
 
@@ -52,6 +53,15 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       '#default_value' => $this->configuration['secret'],
       '#required' => TRUE,
     ];
+    $form['intent'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Intent'),
+      '#options' => [
+        'capture' => $this->t('Capture'),
+        'authorize' => $this->t('Authorize'),
+      ],
+      '#default_value' => $this->configuration['intent'],
+    ];
 
     return $form;
   }
@@ -67,6 +77,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     $values = $form_state->getValue($form['#parents']);
     $this->configuration['client_id'] = $values['client_id'];
     $this->configuration['secret'] = $values['secret'];
+    $this->configuration['intent'] = $values['intent'];
   }
 
   /**
