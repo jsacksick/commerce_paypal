@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -58,7 +59,7 @@ class CheckoutController extends ControllerBase {
   }
 
   /**
-   * Create the order in PayPal.
+   * Create/update the order in PayPal.
    *
    * @param PaymentGatewayInterface $commerce_payment_gateway
    *   The payment gateway.
@@ -75,14 +76,79 @@ class CheckoutController extends ControllerBase {
     }
     $config = $commerce_payment_gateway->getPluginConfiguration();
     $sdk = $this->checkoutSdkFactory->get($config);
+    /**
+     * @var \Drupal\commerce_payment\Entity\PaymentMethodInterface|NULL $payment_method;
+     */
+    $payment_method = !$commerce_order->get('payment_method')->isEmpty() ? $commerce_order->get('payment_method')->entity : NULL;
+
+    if (!empty($payment_method) &&
+      $payment_method->bundle() == 'paypal_checkout' &&
+      !empty($payment_method->getRemoteId())) {
+      try {
+        $sdk->getOrder($payment_method->getRemoteId());
+        $sdk->updateOrder($payment_method->getRemoteId(), $commerce_order);
+        return new JsonResponse(['id' => $payment_method->getRemoteId()]);
+      }
+      catch (ClientException $exception) {
+        // Create a new order in PayPal if this one could not be updated.
+      }
+    }
     try {
       $response = $sdk->createOrder($commerce_order);
       $body = Json::decode($response->getBody()->getContents());
+
+      // If order was already referencing a payment method, update it.
+      if (!empty($payment_method)) {
+        $payment_method->setRemoteId($body['id']);
+        $payment_method->save();
+      }
+
       return new JsonResponse(['id' => $body['id']]);
     }
     catch (ClientException $exception) {
       return new Response('', Response::HTTP_BAD_REQUEST);
     }
+  }
+
+  /**
+   * React to the PayPal checkout "onApprove" JS SDK callback.
+   *
+   * @param PaymentGatewayInterface $commerce_payment_gateway
+   *   The payment gateway.
+   * @param \Drupal\commerce_order\Entity\OrderInterface $commerce_order
+   *   The order.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   A response.
+   */
+  public function onApprove(PaymentGatewayInterface $commerce_payment_gateway, OrderInterface $commerce_order, Request $request) {
+    $payment_gateway_plugin = $commerce_payment_gateway->getPlugin();
+    if (!$payment_gateway_plugin instanceof CheckoutInterface) {
+      throw new AccessException('Invalid payment gateway provided.');
+    }
+    $body = Json::decode($request->getContent());
+    if (!isset($body['id'])) {
+      throw new AccessException('Missing PayPal order ID.');
+    }
+    $config = $payment_gateway_plugin->getConfiguration();
+    $sdk = $this->checkoutSdkFactory->get($config);
+
+    try {
+      $request = $sdk->getOrder($body['id']);
+      $paypal_order = Json::decode($request->getBody()->getContents());
+      $response = $payment_gateway_plugin->onApprove($commerce_order, $paypal_order);
+    }
+    catch (ClientException $exception) {
+      throw new AccessException('Could not load the order from PayPal.');
+    }
+
+    if (empty($response)) {
+      $response = new Response('', 200);
+    }
+
+    return $response;
   }
 
 }

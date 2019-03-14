@@ -10,3 +10,16 @@ commerce_paypal.checkout.create:
         type: entity:commerce_payment_gateway
       commerce_order:
         type: entity:commerce_order
+
+commerce_paypal.checkout.approve:
+  path: '/commerce-paypal/checkout-approve/{commerce_payment_gateway}/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_paypal\Controller\CheckoutController::onApprove'
+  requirements:
+    _access: 'TRUE'
+  options:
+    parameters:
+      commerce_payment_gateway:
+        type: entity:commerce_payment_gateway
+      commerce_order:
+        type: entity:commerce_order

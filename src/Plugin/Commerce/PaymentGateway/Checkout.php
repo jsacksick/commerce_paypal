@@ -2,18 +2,23 @@
 
 namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
 use Drupal\commerce_paypal\CheckoutSdkFactoryInterface;
+use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Zend\Diactoros\Response\JsonResponse;
 
 /**
  * Provides the Paypal Checkout payment gateway.
@@ -219,6 +224,72 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    */
   public function deletePaymentMethod(PaymentMethodInterface $payment_method) {
     // TODO: Implement deletePaymentMethod() method.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onApprove(OrderInterface $order, array $paypal_order) {
+    $paypal_amount = $paypal_order['purchase_units'][0]['amount'];
+    $paypal_total = Price::fromArray(['number' => $paypal_amount['value'], 'currency_code' => $paypal_amount['currency_code']]);
+
+    // Make sure the order total matches the total we get from PayPal.
+    if ($paypal_total != $order->getTotalPrice() || !in_array($paypal_order['status'], ['APPROVED', 'COMPLETED'])) {
+      return new Response('', Response::HTTP_BAD_REQUEST);
+    }
+
+    // We should enter the condition only if a payment method is already
+    // referenced by the order (It's created when the PaymentInformation pane
+    // is submitted, that happens in the "mark" flow).
+    // Up until this point, the remote_id is unknown,
+    if (!$order->get('payment_method')->isEmpty() &&
+      $order->get('payment_method')->entity->bundle() == 'paypal_checkout') {
+      /**
+       * @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method
+       */
+      $payment_method = $order->get('payment_method')->entity;
+      if ($payment_method->getRemoteId() != $paypal_order['id']) {
+        $payment_method->setRemoteId($paypal_order['id']);
+        $payment_method->save();
+      }
+
+      // Redirect to the payment step to capture/authorize the payment
+      // when in the "mark" flow.
+      // @todo: Should we make this more generic/configurable?
+      $order->set('payment_gateway', $this->entityId);
+      $order->set('checkout_step', 'payment');
+      $order->save();
+    }
+    else {
+      /**
+       * @var \Drupal\commerce_payment\PaymentMethodStorageInterface $payment_method_storage
+       */
+      $payment_method_storage = $this->entityTypeManager->getStorage('commerce_payment_method');
+      // The payment method is only created on onApprove() when in the
+      // "shortcut" flow.
+      $payment_method = $payment_method_storage->create([
+        'payment_gateway' => $this->entityId,
+        'type' => 'paypal_checkout',
+        'flow' => 'shortcut',
+        'reusable' => FALSE,
+        'remote_id' => $paypal_order['id'],
+      ]);
+      $payment_method->save();
+      // Force the checkout flow to PayPal checkout which is the flow the module
+      // defines for the "shortcut" flow.
+      $order->set('checkout_flow', 'paypal_checkout');
+      $order->set('payment_gateway', $this->entityId);
+      $order->set('payment_method', $payment_method->id());
+      $order->save();
+    }
+    // @todo: Display a successful message to the customer?
+    // @todo: Investigate if possible to pass a "return_url" to PayPal via
+    // the "application_context" instead of custom code to redirect the user.
+    $options = [
+      'commerce_order' => $order->id(),
+    ];
+    $redirect_uri = Url::fromRoute('commerce_checkout.form', $options);
+    return new JsonResponse(['redirectUri' => $redirect_uri->toString()]);
   }
 
 }
