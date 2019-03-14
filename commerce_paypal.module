@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Implements PayPal payment services for use with Drupal Commerce.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway\CheckoutInterface;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form, FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\views\ViewExecutable $view */
+  $view = reset($form_state->getBuildInfo()['args']);
+  // Only add the smart payment buttons if the cart form view has order items.
+  if (empty($view->result)) {
+    return;
+  }
+  $order_id = $view->args[0];
+  $entity_type_manager = \Drupal::entityTypeManager();
+  /** @var \Drupal\commerce_payment\PaymentGatewayStorageInterface $payment_gateway_storage */
+  $payment_gateway_storage = $entity_type_manager->getStorage('commerce_payment_gateway');
+  $order = $entity_type_manager->getStorage('commerce_order')->load($order_id);
+  // Load the payment gateways. This fires an event for filtering the
+  // available gateways, and then evaluates conditions on all remaining ones.
+  $payment_gateways = $payment_gateway_storage->loadMultipleForOrder($order);
+  // Can't proceed without any payment gateways.
+  if (empty($payment_gateways)) {
+    return;
+  }
+  foreach ($payment_gateways as $payment_gateway) {
+    if (!$payment_gateway->getPlugin() instanceof CheckoutInterface) {
+      continue;
+    }
+    $form['paypal_smart_payment_buttons'] = [
+      '#type' => 'commerce_paypal_smart_payment_buttons',
+      '#commit' => FALSE,
+      '#order_id' => $order_id,
+      '#payment_gateway' => $payment_gateway,
+      '#weight' => 100,
+    ];
+  }
+}

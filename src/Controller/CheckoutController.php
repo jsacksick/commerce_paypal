@@ -62,7 +62,7 @@ class CheckoutController extends ControllerBase {
    *
    * @param PaymentGatewayInterface $commerce_payment_gateway
    *   The payment gateway.
-   * @param OrderInterface $commerce_order
+   * @param \Drupal\commerce_order\Entity\OrderInterface $commerce_order
    *   The order.
    *
    * @return \Symfony\Component\HttpFoundation\Response
