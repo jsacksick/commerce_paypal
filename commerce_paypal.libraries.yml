@@ -1,0 +1,8 @@
+paypal_checkout:
+  js:
+    js/paypal-checkout.js: {}
+  dependencies:
+    - core/drupalSettings
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
