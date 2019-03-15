@@ -5,10 +5,13 @@ namespace Drupal\commerce_paypal;
 use Drupal\address\AddressInterface;
 use Drupal\commerce_order\AdjustmentTransformerInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_paypal\Event\CheckoutOrderRequestEvent;
+use Drupal\commerce_paypal\Event\PayPalEvents;
 use Drupal\commerce_price\Calculator;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use GuzzleHttp\ClientInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Provides a replacement of the PayPal SDK.
@@ -28,6 +31,13 @@ class CheckoutSdk implements CheckoutSdkInterface {
    * @var \Drupal\commerce_order\AdjustmentTransformerInterface
    */
   protected $adjustmentTransformer;
+
+  /**
+   * The event dispatcher.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
 
   /**
    * The module handler.
@@ -50,14 +60,17 @@ class CheckoutSdk implements CheckoutSdkInterface {
    *   The client.
    * @param \Drupal\commerce_order\AdjustmentTransformerInterface $adjustment_transformer
    *   The adjustment transformer.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   The event dispatcher.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param array $config
    *   The payment gateway plugin configuration array.
    */
-  public function __construct(ClientInterface $client, AdjustmentTransformerInterface $adjustment_transformer, ModuleHandlerInterface $module_handler, array $config) {
+  public function __construct(ClientInterface $client, AdjustmentTransformerInterface $adjustment_transformer, EventDispatcherInterface $event_dispatcher, ModuleHandlerInterface $module_handler, array $config) {
     $this->client = $client;
     $this->adjustmentTransformer = $adjustment_transformer;
+    $this->eventDispatcher = $event_dispatcher;
     $this->moduleHandler = $module_handler;
     $this->config = $config;
   }
@@ -79,7 +92,9 @@ class CheckoutSdk implements CheckoutSdkInterface {
    */
   public function createOrder(OrderInterface $order) {
     $params = $this->prepareOrderRequest($order);
-    return $this->client->post('/v2/checkout/orders', ['json' => $params]);
+    $event = new CheckoutOrderRequestEvent($order, $params);
+    $this->eventDispatcher->dispatch(PayPalEvents::CHECKOUT_CREATE_ORDER_REQUEST, $event);
+    return $this->client->post('/v2/checkout/orders', ['json' => $event->getRequestBody()]);
   }
 
   /**
@@ -101,7 +116,9 @@ class CheckoutSdk implements CheckoutSdkInterface {
         'value' => $params['purchase_units'][0],
       ],
     ];
-    return $this->client->patch(sprintf('/v2/checkout/orders/%s', $remote_id), ['json' => $update_params]);
+    $event = new CheckoutOrderRequestEvent($order, $update_params);
+    $this->eventDispatcher->dispatch(PayPalEvents::CHECKOUT_UPDATE_ORDER_REQUEST, $event);
+    return $this->client->patch(sprintf('/v2/checkout/orders/%s', $remote_id), ['json' => $event->getRequestBody()]);
   }
 
   /**
