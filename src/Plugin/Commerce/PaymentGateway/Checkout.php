@@ -19,6 +19,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\profile\Entity\ProfileInterface;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -112,6 +113,8 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'secret' => '',
       'intent' => 'capture',
       'shipping_preference' => 'get_from_file',
+      'update_billing_profile' => TRUE,
+      'update_shipping_profile' => TRUE,
     ] + parent::defaultConfiguration();
   }
 
@@ -144,6 +147,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       ],
       '#default_value' => $this->configuration['intent'],
     ];
+    $shipping_enabled = $this->moduleHandler->moduleExists('commerce_shipping');
     $form['shipping_preference'] = [
       '#type' => 'radios',
       '#title' => $this->t('Shipping address collection'),
@@ -153,7 +157,18 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         'set_provided_address' => $this->t('Ask for a shipping address at PayPal if the order does not have one yet.'),
       ],
       '#default_value' => $this->configuration['shipping_preference'],
-      '#access' => $this->moduleHandler->moduleExists('commerce_shipping'),
+      '#access' => $shipping_enabled,
+    ];
+    $form['update_billing_profile'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Update the billing customer profile with address information the customer enters at PayPal.'),
+      '#default_value' => $this->configuration['update_billing_profile'],
+    ];
+    $form['update_shipping_profile'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Update shipping customer profiles with address information the customer enters at PayPal.'),
+      '#default_value' => $this->configuration['update_shipping_profile'],
+      '#access' => $shipping_enabled,
     ];
 
     return $form;
@@ -191,10 +206,20 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       return;
     }
     $values = $form_state->getValue($form['#parents']);
-    $this->configuration['client_id'] = $values['client_id'];
-    $this->configuration['secret'] = $values['secret'];
-    $this->configuration['intent'] = $values['intent'];
-    $this->configuration['shipping_preference'] = $values['shipping_preference'];
+    $keys = [
+      'client_id',
+      'secret',
+      'intent',
+      'shipping_preference',
+      'update_billing_profile',
+      'update_shipping_profile',
+    ];
+    foreach ($keys as $key) {
+      if (!isset($values[$key])) {
+        continue;
+      }
+      $this->configuration[$key] = $values[$key];
+    }
   }
 
   /**
@@ -396,7 +421,18 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     if (!$paypal_total->equals($order->getTotalPrice()) || !in_array($paypal_order['status'], ['APPROVED', 'COMPLETED'])) {
       return new Response('', Response::HTTP_BAD_REQUEST);
     }
+    $payer = $paypal_order['payer'];
 
+    if (empty($order->getEmail())) {
+      $order->setEmail($payer['email_address']);
+    }
+
+    if ($this->configuration['update_billing_profile']) {
+      $this->updateProfile($order, 'billing', $paypal_order);
+    }
+    if (!empty($this->configuration['update_shipping_profile']) && $order->hasField('shipments')) {
+      $this->updateProfile($order, 'shipping', $paypal_order);
+    }
     // We should enter the condition only if a payment method is already
     // referenced by the order (It's created when the PaymentInformation pane
     // is submitted, that happens in the "mark" flow).
@@ -476,6 +512,113 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       ],
     ];
     return isset($mapping[$type][$remote_state]) ? $mapping[$type][$remote_state] : '';
+  }
+
+  /**
+   * Updates the profile of the given type using the response returned by PayPal.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param $type
+   *   The type (billing|profile).
+   * @param array $paypal_order
+   *   The PayPal order.
+   */
+  protected function updateProfile(OrderInterface $order, $type, array $paypal_order) {
+    if ($type == 'billing') {
+      /** @var \Drupal\profile\Entity\ProfileInterface $profile */
+      $profile = $order->getBillingProfile() ?: $this->buildCustomerProfile($order);
+      $profile->address->given_name = $paypal_order['payer']['name']['given_name'];
+      $profile->address->family_name =  $paypal_order['payer']['name']['surname'];
+      if (isset($paypal_order['payer']['address'])) {
+        $this->populateProfile($profile, $paypal_order['payer']['address']);
+      }
+      $profile->save();
+      $order->setBillingProfile($profile);
+    }
+    elseif ($type == 'shipping' && !empty($paypal_order['purchase_units'][0]['shipping'])) {
+      $shipping_info = $paypal_order['purchase_units'][0]['shipping'];
+      $shipments = $order->shipments->referencedEntities();
+      if (!$shipments) {
+        /** @var \Drupal\commerce_shipping\PackerManagerInterface $packer_manager */
+        $packer_manager = \Drupal::service('commerce_shipping.packer_manager');
+        list($shipments) = $packer_manager->packToShipments($order, $this->buildCustomerProfile($order), $shipments);
+      }
+      /** @var \Drupal\commerce_shipping\Entity\ShipmentInterface $first_shipment */
+      $first_shipment = $shipments[0];
+      /** @var \Drupal\profile\Entity\ProfileInterface $profile */
+      $profile = $first_shipment->getShippingProfile() ?: $this->buildCustomerProfile($order);
+
+      // This is a hack but shipments with empty amounts is crashing other
+      // contrib modules.
+      // Ideally, we shouldn't have to pack the shipments ourselves...
+      if (!$first_shipment->getAmount()) {
+        $shipment_amount = Price::fromArray([
+          'number' => 0,
+          'currency_code' => $order->getTotalPrice()->getCurrencyCode(),
+        ]);
+        $first_shipment->setAmount($shipment_amount);
+      }
+
+      // We only get the full name from PayPal, so we need to "guess" the given
+      // name and the family name.
+      $names = explode(' ', $shipping_info['name']['full_name']);
+      $given_name = array_shift($names);
+      $family_name = implode(' ', $names);
+      $profile->address->given_name = $given_name;
+      $profile->address->family_name =  $family_name;
+      if (!empty($shipping_info['address'])) {
+        $this->populateProfile($profile, $shipping_info['address']);
+      }
+      $profile->save();
+      $first_shipment->setShippingProfile($profile);
+      $first_shipment->save();
+      $order->set('shipments', $shipments);
+    }
+  }
+
+  /**
+   * Builds a customer profile, assigned to the order's owner.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return \Drupal\profile\Entity\ProfileInterface
+   *   The customer profile.
+   */
+  protected function buildCustomerProfile(OrderInterface $order) {
+    return $this->entityTypeManager->getStorage('profile')->create([
+      'uid' => $order->getCustomerId(),
+      'type' => 'customer',
+    ]);
+  }
+
+  /**
+   * Populate the given profile with the given PayPal address.
+   *
+   * @param \Drupal\profile\Entity\ProfileInterface $profile
+   *   The profile to populate.
+   * @param array $address
+   *   The PayPal address.
+   */
+  protected function populateProfile(ProfileInterface $profile, array $address) {
+    // Map PayPal address keys to keys expected by AddressItem.
+    $mapping = [
+      'address_line_1' => 'address_line1',
+      'address_line_2' => 'address_line2',
+      'admin_area_1' => 'administrative_area',
+      'admin_area_2' => 'locality',
+      'postal_code' => 'postal_code',
+      'country_code' => 'country_code',
+    ];
+    foreach ($address as $key => $value) {
+      if (!isset($mapping[$key])) {
+        continue;
+      }
+      // PayPal address fields have a higher maximum length than ours.
+      $value = $key == 'country_code' ? $value : mb_substr($value, 0, 255);
+      $profile->address->{$mapping[$key]} = $value;
+    }
   }
 
 }
