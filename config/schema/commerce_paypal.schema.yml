@@ -19,6 +19,25 @@ commerce_payment.commerce_payment_gateway.plugin.paypal_checkout:
     update_shipping_profile:
       type: boolean
       label: 'Update shipping profile'
+    style:
+      type: mapping
+      label: 'Style'
+      mapping:
+        layout:
+          type: string
+          label: 'Layout'
+        color:
+          type: string
+          label: 'Color'
+        shape:
+          type: string
+          label: 'Shape'
+        label:
+          type: string
+          label: 'Label'
+        tagline:
+          type: boolean
+          label: 'Display tagline'
 commerce_payment.commerce_payment_gateway.plugin.paypal_express_checkout:
   type: commerce_payment_gateway_configuration
   mapping:

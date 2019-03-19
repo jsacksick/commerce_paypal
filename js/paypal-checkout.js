@@ -26,7 +26,8 @@
                 window.location.href = data.redirectUri;
               }
             });
-          }
+          },
+          style: settings['style']
         }).render('#' + $(this).attr('id'));
       });
     },
@@ -37,7 +38,7 @@
         script.type = 'text/javascript';
         document.getElementsByTagName('head')[0].appendChild(script);
       }
-      const waitForSdk = function(settings) {
+      var waitForSdk = function(settings) {
         if (typeof paypal !== 'undefined') {
           Drupal.paypalCheckout.renderButtons(settings);
         }

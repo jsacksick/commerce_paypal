@@ -127,6 +127,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'shipping_preference' => 'get_from_file',
       'update_billing_profile' => TRUE,
       'update_shipping_profile' => TRUE,
+      'style' => [],
     ] + parent::defaultConfiguration();
   }
 
@@ -182,6 +183,72 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       '#default_value' => $this->configuration['update_shipping_profile'],
       '#access' => $shipping_enabled,
     ];
+    $form['customize_buttons'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Customize the buttons'),
+      '#default_value' => !empty($this->configuration['style']),
+    ];
+    $form['style'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Style'),
+      '#description' => $this->t('For more information, please visit <a href=":url" target="_blank">customize the PayPal buttons</a>.', [':url' => 'https://developer.paypal.com/docs/checkout/integration-features/customize-button/#layout']),
+      '#states' => [
+        'visible' => [
+          ':input[name="configuration[' . $this->pluginId . '][customize_buttons]"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+    // Define some default values for the style configuration.
+    $this->configuration['style'] += [
+      'layout' => 'vertical',
+      'color' => 'gold',
+      'shape' => 'rect',
+      'label' => 'paypal',
+      'tagline' => TRUE,
+    ];
+    $form['style']['layout'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Layout'),
+      '#default_value' => $this->configuration['style']['layout'],
+      '#options' => [
+        'vertical' => $this->t('Vertical'),
+        'horizontal' => $this->t('Horizontal'),
+      ],
+    ];
+    $form['style']['color'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Color'),
+      '#options' => [
+        'gold' => $this->t('Gold (Recommended)'),
+        'blue' => $this->t('Blue'),
+        'silver' => $this->t('Silver'),
+      ],
+      '#default_value' => $this->configuration['style']['color'],
+    ];
+    $form['style']['shape'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Shape'),
+      '#options' => [
+        'rect' => $this->t('Rect (Default)'),
+        'pill' => $this->t('Pill'),
+      ],
+      '#default_value' => $this->configuration['style']['shape'],
+    ];
+    $form['style']['label'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Label'),
+      '#options' => [
+        'paypal' => $this->t('Displays the PayPal logo (Default)'),
+        'checkout' => $this->t('Displays the PayPal Checkout button'),
+        'pay' => $this->t('Displays the Pay With PayPal button and initializes the checkout flow'),
+      ],
+      '#default_value' => $this->configuration['style']['label'],
+    ];
+    $form['style']['tagline'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Display tagline'),
+      '#default_value' => $this->configuration['style']['tagline'],
+    ];
 
     return $form;
   }
@@ -226,6 +293,12 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'update_billing_profile',
       'update_shipping_profile',
     ];
+
+    // Only save the style settings if the customize buttons checkbox is checked.
+    if (!empty($values['customize_buttons'])) {
+      $keys[] = 'style';
+    }
+
     foreach ($keys as $key) {
       if (!isset($values[$key])) {
         continue;

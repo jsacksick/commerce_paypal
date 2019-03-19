@@ -77,6 +77,7 @@ class SmartPaymentButtons extends RenderElement {
       'elementSelector' => '.paypal-buttons-container',
       'onCreateUri' => Url::fromRoute('commerce_paypal.checkout.create', $route_options)->toString(),
       'onApproveUri' => Url::fromRoute('commerce_paypal.checkout.approve', $route_options)->toString(),
+      'style' => $configuration['style'],
     ];
     $element['#markup'] = Markup::create(sprintf('<div %s></div>', $attributes));
     return $element;
