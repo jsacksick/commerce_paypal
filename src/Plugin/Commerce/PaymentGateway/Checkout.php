@@ -124,6 +124,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'client_id' => '',
       'secret' => '',
       'intent' => 'capture',
+      'disable_funding' => [],
       'shipping_preference' => 'get_from_file',
       'update_billing_profile' => TRUE,
       'update_shipping_profile' => TRUE,
@@ -159,6 +160,17 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         'authorize' => $this->t('Authorize'),
       ],
       '#default_value' => $this->configuration['intent'],
+    ];
+    $form['disable_funding'] = [
+      '#title' => $this->t('Disable funding'),
+      '#description' => $this->t('The disabled funding sources for the transaction. Any funding sources passed are not displayed in the Smart Payment Buttons. By default, funding source eligibility is smartly decided based on a variety of factors.'),
+      '#type' => 'checkboxes',
+      '#options' => [
+        'card' => $this->t('Credit or Debit Cards'),
+        'credit' => $this->t('PayPal Credit'),
+        'sepa' => $this->t('SEPA-Lastschrift'),
+      ],
+      '#default_value' => $this->configuration['disable_funding'],
     ];
     $shipping_enabled = $this->moduleHandler->moduleExists('commerce_shipping');
     $form['shipping_preference'] = [
@@ -290,10 +302,12 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       return;
     }
     $values = $form_state->getValue($form['#parents']);
+    $values['disable_funding'] = array_filter($values['disable_funding']);
     $keys = [
       'client_id',
       'secret',
       'intent',
+      'disable_funding',
       'shipping_preference',
       'update_billing_profile',
       'update_shipping_profile',

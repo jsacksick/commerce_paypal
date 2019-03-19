@@ -10,6 +10,11 @@ commerce_payment.commerce_payment_gateway.plugin.paypal_checkout:
     intent:
       type: string
       label: 'Intent'
+    disable_funding:
+      type: sequence
+      label: 'Disable funding'
+      sequence:
+        type: string
     shipping_preference:
       type: string
       label: 'Shipping preference'
