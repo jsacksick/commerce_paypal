@@ -2,7 +2,6 @@
 
 namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 
-use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
@@ -729,14 +728,11 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
   }
 
   /**
-   * Remove the payment method referenced by an order, when the PayPal order
+   * Remove the payment method referenced by an order when the PayPal order
    * could not be captured/authorized in createPayment().
    *
-   * Our payment methods are not reusable, thus, when a payment fails in
-   * createPayment(), the customer will be redirected to the checkout step
-   * containing the PaymentInformation pane, when that happens, the customer
-   * shouldn't be able to reselect the same payment method (that already has
-   * a remote_id).
+   * That is done to ensure we don't present multiple "PayPal" payment options
+   * in Checkout.
    *
    * @param OrderInterface $order
    *   The order.
