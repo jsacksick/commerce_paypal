@@ -36,6 +36,7 @@
         var script = document.createElement('script');
         script.src = settings.src;
         script.type = 'text/javascript';
+        script.setAttribute('data-partner-attribution-id', 'CommerceGuys_Cart_SPB');
         document.getElementsByTagName('head')[0].appendChild(script);
       }
       var waitForSdk = function(settings) {
