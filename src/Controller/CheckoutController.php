@@ -66,7 +66,7 @@ class CheckoutController extends ControllerBase {
     return new static(
       $container->get('commerce_paypal.checkout_sdk_factory'),
       $container->get('entity_type.manager'),
-      $container->get('logger.factory')->get('commerce_paypal')
+      $container->get('logger.channel.commerce_paypal')
     );
   }
 

@@ -112,7 +112,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $container->get('datetime.time'),
       $container->get('module_handler'),
       $container->get('commerce_paypal.checkout_sdk_factory'),
-      $container->get('logger.factory')->get('commerce_paypal')
+      $container->get('logger.channel.commerce_paypal')
     );
   }
 
