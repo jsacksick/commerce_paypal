@@ -31,7 +31,7 @@ use Zend\Diactoros\Response\JsonResponse;
  *
  * @CommercePaymentGateway(
  *   id = "paypal_checkout",
- *   label = @Translation("PayPal (Checkout)"),
+ *   label = @Translation("PayPal Checkout [Preferred]"),
  *   display_label = @Translation("PayPal"),
  *   payment_method_types = {"paypal_checkout"},
  *   forms = {
@@ -155,7 +155,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
     $form['intent'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Intent'),
+      '#title' => $this->t('Transaction type'),
       '#options' => [
         'capture' => $this->t('Capture'),
         'authorize' => $this->t('Authorize'),
@@ -213,12 +213,15 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
     $form['customize_buttons'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Customize the buttons'),
+      '#title' => $this->t('Smart button style'),
       '#default_value' => !empty($this->configuration['style']),
+      '#title_display' => 'before',
+      '#field_suffix' => $this->t('Customize'),
+      '#description_display' => 'before',
     ];
     $form['style'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Style'),
+      '#title' => $this->t('Settings'),
       '#description' => $this->t('For more information, please visit <a href=":url" target="_blank">customize the PayPal buttons</a>.', [':url' => 'https://developer.paypal.com/docs/checkout/integration-features/customize-button/#layout']),
       '#states' => [
         'visible' => [
@@ -239,7 +242,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       '#title' => $this->t('Layout'),
       '#default_value' => $this->configuration['style']['layout'],
       '#options' => [
-        'vertical' => $this->t('Vertical'),
+        'vertical' => $this->t('Vertical (Recommended)'),
         'horizontal' => $this->t('Horizontal'),
       ],
     ];
