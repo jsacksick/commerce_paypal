@@ -344,6 +344,12 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       }
     }
 
+    // When the "card" funding source is disabled, the "disable_card" setting
+    // cannot be specified.
+    if (isset($values['disable_funding']['card'])) {
+      $values['disable_card'] = [];
+    }
+
     foreach ($keys as $key) {
       if (!isset($values[$key])) {
         continue;
