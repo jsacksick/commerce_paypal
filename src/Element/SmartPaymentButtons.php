@@ -71,11 +71,12 @@ class SmartPaymentButtons extends RenderElement {
         'commit' => $element['#commit'] ? 'true' : 'false',
       ],
     ];
-
     if (!empty($configuration['disable_funding'])) {
       $options['query']['disable-funding'] = implode(',', $configuration['disable_funding']);
     }
-
+    if (!empty($configuration['disable_card'])) {
+      $options['query']['disable-card'] = implode(',', $configuration['disable_card']);
+    }
     $element['#attached']['library'][] = 'commerce_paypal/paypal_checkout';
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
       'src' => Url::fromUri('https://www.paypal.com/sdk/js', $options)->toString(),

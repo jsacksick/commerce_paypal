@@ -125,6 +125,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'secret' => '',
       'intent' => 'capture',
       'disable_funding' => [],
+      'disable_card' => [],
       'shipping_preference' => 'get_from_file',
       'update_billing_profile' => TRUE,
       'update_shipping_profile' => TRUE,
@@ -162,7 +163,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       '#default_value' => $this->configuration['intent'],
     ];
     $form['disable_funding'] = [
-      '#title' => $this->t('Disable funding'),
+      '#title' => $this->t('Disable funding sources'),
       '#description' => $this->t('The disabled funding sources for the transaction. Any funding sources passed are not displayed in the Smart Payment Buttons. By default, funding source eligibility is smartly decided based on a variety of factors.'),
       '#type' => 'checkboxes',
       '#options' => [
@@ -171,6 +172,21 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         'sepa' => $this->t('SEPA-Lastschrift'),
       ],
       '#default_value' => $this->configuration['disable_funding'],
+    ];
+    $form['disable_card'] = [
+      '#title' => $this->t('Disable card types'),
+      '#description' => $this->t('The disabled cards for the transaction. Any cards passed do not display in the Smart Payment Buttons. By default, card eligibility is smartly decided based on a variety of factors.'),
+      '#type' => 'checkboxes',
+      '#options' => [
+        'visa' => $this->t('Visa'),
+        'mastercard' => $this->t('Mastercard'),
+        'amex' => $this->t('American Express'),
+        'discover' => $this->t('Discover'),
+        'jcb' => $this->t('JCB'),
+        'elo' => $this->t('Elo'),
+        'hiper' => $this->t('Hiper'),
+      ],
+      '#default_value' => $this->configuration['disable_card'],
     ];
     $shipping_enabled = $this->moduleHandler->moduleExists('commerce_shipping');
     $form['shipping_preference'] = [
@@ -303,11 +319,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     }
     $values = $form_state->getValue($form['#parents']);
     $values['disable_funding'] = array_filter($values['disable_funding']);
+    $values['disable_card'] = array_filter($values['disable_card']);
     $keys = [
       'client_id',
       'secret',
       'intent',
       'disable_funding',
+      'disable_card',
       'shipping_preference',
       'update_billing_profile',
       'update_shipping_profile',

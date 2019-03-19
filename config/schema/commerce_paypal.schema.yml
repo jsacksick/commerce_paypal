@@ -12,7 +12,12 @@ commerce_payment.commerce_payment_gateway.plugin.paypal_checkout:
       label: 'Intent'
     disable_funding:
       type: sequence
-      label: 'Disable funding'
+      label: 'Disable funding sources'
+      sequence:
+        type: string
+    disable_card:
+      type: sequence
+      label: 'Disable card types'
       sequence:
         type: string
     shipping_preference:
