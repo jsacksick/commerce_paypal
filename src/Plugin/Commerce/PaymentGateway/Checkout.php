@@ -204,7 +204,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'color' => 'gold',
       'shape' => 'rect',
       'label' => 'paypal',
-      'tagline' => TRUE,
+      'tagline' => FALSE,
     ];
     $form['style']['layout'] = [
       '#type' => 'select',
@@ -248,6 +248,11 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       '#type' => 'checkbox',
       '#title' => $this->t('Display tagline'),
       '#default_value' => $this->configuration['style']['tagline'],
+      '#states' => [
+        'visible' => [
+          ':input[name="configuration[' . $this->pluginId . '][style][layout]"]' => ['value' => 'horizontal'],
+        ],
+      ],
     ];
 
     return $form;
@@ -297,6 +302,11 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     // Only save the style settings if the customize buttons checkbox is checked.
     if (!empty($values['customize_buttons'])) {
       $keys[] = 'style';
+
+      // Can't display the tagline if the layout configured is "vertical".
+      if ($values['style']['layout'] === 'vertical') {
+        $values['style']['tagline'] = FALSE;
+      }
     }
 
     foreach ($keys as $key) {
