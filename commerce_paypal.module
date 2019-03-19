@@ -41,6 +41,7 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
       '#payment_gateway' => $payment_gateway,
       '#weight' => 100,
     ];
+    break;
   }
 }
 
