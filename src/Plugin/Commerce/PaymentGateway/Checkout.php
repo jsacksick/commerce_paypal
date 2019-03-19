@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 
+use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
@@ -330,10 +331,12 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     }
     catch (ClientException $exception) {
       $this->logger->error($exception->getMessage());
-      throw new PaymentGatewayException('Could not retrieve the order in PayPal.');
+      $this->removeFaultyPaymentMethod($payment->getOrder());
+      throw new PaymentGatewayException(sprintf('Could not retrieve the order from PayPal with the following remote_id: %s.', $paypal_order_id));
     }
     if (!in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
-      throw new PaymentGatewayException('Wrong remote order status.');
+      $this->removeFaultyPaymentMethod($payment->getOrder());
+      throw new PaymentGatewayException(sprintf('Wrong remote order status. Expected: "approved"|"saved", Actual: %s.', $paypal_order['status']));
     }
     $intent = strtolower($paypal_order['intent']);
     try {
@@ -356,19 +359,23 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     }
     catch (ClientException $exception) {
       $this->logger->error($exception->getMessage());
-      throw new PaymentGatewayException('The provided payment method is no longer valid.');
+      $this->removeFaultyPaymentMethod($payment->getOrder());
+      throw new PaymentGatewayException(sprintf('Could not %s the payment for order %s.', $intent, $payment->getOrder()->id()));
     }
     $remote_state = strtolower($remote_payment['status']);
+
+    if (in_array($remote_state, ['denied', 'expired', 'declined'])) {
+      $this->removeFaultyPaymentMethod($payment->getOrder());
+      throw new HardDeclineException(sprintf('Could not %s the payment for order %s. Remote payment state: %s', $intent, $payment->getOrder()->id(), $remote_state));
+    }
     $state = $this->mapPaymentState($intent, $remote_state);
 
     // If we couldn't find a state to map to, stop here.
     if (!$state) {
+      $this->removeFaultyPaymentMethod($payment->getOrder());
       throw new PaymentGatewayException('The PayPal payment is in a state we cannot handle.');
     }
 
-    if (in_array($remote_state, ['denied', 'expired', 'declined'])) {
-      throw new HardDeclineException(sprintf('Could not %s the payment.', $intent));
-    }
     $payment_amount = Price::fromArray([
       'number' => $remote_payment['amount']['value'],
       'currency_code' => $remote_payment['amount']['currency_code'],
@@ -718,6 +725,27 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       // PayPal address fields have a higher maximum length than ours.
       $value = $key == 'country_code' ? $value : mb_substr($value, 0, 255);
       $profile->address->{$mapping[$key]} = $value;
+    }
+  }
+
+  /**
+   * Remove the payment method referenced by an order, when the PayPal order
+   * could not be captured/authorized in createPayment().
+   *
+   * Our payment methods are not reusable, thus, when a payment fails in
+   * createPayment(), the customer will be redirected to the checkout step
+   * containing the PaymentInformation pane, when that happens, the customer
+   * shouldn't be able to reselect the same payment method (that already has
+   * a remote_id).
+   *
+   * @param OrderInterface $order
+   *   The order.
+   */
+  protected function removeFaultyPaymentMethod(OrderInterface $order) {
+    $payment_method = $order->get('payment_method')->entity;
+    if ($payment_method) {
+      $payment_method->delete();
+      $order->set('payment_method', NULL);
     }
   }
 
