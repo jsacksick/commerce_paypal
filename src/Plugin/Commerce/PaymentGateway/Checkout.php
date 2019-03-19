@@ -21,6 +21,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\profile\Entity\ProfileInterface;
 use GuzzleHttp\Exception\ClientException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Zend\Diactoros\Response\JsonResponse;
@@ -58,6 +59,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
   protected $checkoutSdkFactory;
 
   /**
+   * The logger.
+   *
+   * @var \Psr\Log\LoggerInterface $logger
+   */
+  protected $logger;
+
+  /**
    * Constructs a new Checkout object.
    *
    * @param array $configuration
@@ -78,13 +86,16 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    *   The module handler.
    * @param \Drupal\commerce_paypal\CheckoutSdkFactoryInterface $checkout_sdk_factory
    *   The PayPal Checkout SDK factory.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ModuleHandlerInterface $module_handler, CheckoutSdkFactoryInterface $checkout_sdk_factory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ModuleHandlerInterface $module_handler, CheckoutSdkFactoryInterface $checkout_sdk_factory, LoggerInterface $logger) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
     $this->moduleHandler = $module_handler;
     // Don't instantiate the client from there to be able to test the
     // connectivity after updating the client_id & secret.
     $this->checkoutSdkFactory = $checkout_sdk_factory;
+    $this->logger = $logger;
   }
 
   /**
@@ -100,7 +111,8 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $container->get('plugin.manager.commerce_payment_method_type'),
       $container->get('datetime.time'),
       $container->get('module_handler'),
-      $container->get('commerce_paypal.checkout_sdk_factory')
+      $container->get('commerce_paypal.checkout_sdk_factory'),
+      $container->get('logger.factory')->get('commerce_paypal')
     );
   }
 
@@ -234,6 +246,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $paypal_order = Json::decode($request->getBody()->getContents());
     }
     catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('Could not retrieve the order in PayPal.');
     }
     if (!in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
@@ -259,6 +272,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       }
     }
     catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('The provided payment method is no longer valid.');
     }
     $remote_state = strtolower($remote_payment['status']);
@@ -339,6 +353,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $response = Json::decode($response->getBody()->getContents());
     }
     catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while capturing the authorized payment.');
     }
     $remote_state = strtolower($response['status']);
@@ -363,6 +378,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $response = $sdk->voidPayment($payment->getRemoteId());
     }
     catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while voiding the payment.');
     }
     if ($response->getStatusCode() == Response::HTTP_NO_CONTENT) {
@@ -400,6 +416,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $response = Json::decode($response->getBody()->getContents());
     }
     catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while refunding the payment.');
     }
 
