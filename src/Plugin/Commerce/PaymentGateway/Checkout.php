@@ -298,6 +298,9 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       return;
     }
     $values = $form_state->getValue($form['#parents']);
+    if (empty($values['client_id']) || empty($values['secret'])) {
+      return;
+    }
     $sdk = $this->checkoutSdkFactory->get($values);
     // Make sure we query for a fresh access token.
     \Drupal::state()->delete('commerce_paypal.oauth2_token');
