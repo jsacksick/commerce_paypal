@@ -289,9 +289,6 @@ class CheckoutSdk implements CheckoutSdkInterface {
       ],
     ];
     $shipping_address = $this->collectShippingAddress($order);
-    if ($shipping_address) {
-      $params['purchase_units'][0]['shipping']['address'] = $shipping_address;
-    }
     $shipping_preference = $this->config['shipping_preference'];
 
     // The shipping module isn't enabled, override the shipping preference
@@ -307,6 +304,13 @@ class CheckoutSdk implements CheckoutSdkInterface {
         $shipping_preference = 'get_from_file';
       }
     }
+
+    // No need to pass a shipping_address if the shipping address collection
+    // is configured to "no_shipping".
+    if ($shipping_address && $shipping_preference !== 'no_shipping') {
+      $params['purchase_units'][0]['shipping']['address'] = $shipping_address;
+    }
+
     $params['application_context']['shipping_preference'] = strtoupper($shipping_preference);
 
     if ($payer) {
