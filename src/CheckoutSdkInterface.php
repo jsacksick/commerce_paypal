@@ -16,7 +16,7 @@ interface CheckoutSdkInterface {
   /**
    * Creates an order in PayPal.
    *
-   * @param OrderInterface $order
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
    *
    * @return \Psr\Http\Message\ResponseInterface
@@ -38,7 +38,7 @@ interface CheckoutSdkInterface {
    *
    * @param $remote_id
    *   The PayPal order ID.
-   * @param OrderInterface $order
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
    *
    * @return \Psr\Http\Message\ResponseInterface

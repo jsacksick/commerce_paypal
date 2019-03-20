@@ -778,7 +778,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    * That is done to ensure we don't present multiple "PayPal" payment options
    * in Checkout.
    *
-   * @param OrderInterface $order
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
    */
   protected function removeFaultyPaymentMethod(OrderInterface $order) {
