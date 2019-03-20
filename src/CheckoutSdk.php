@@ -310,8 +310,18 @@ class CheckoutSdk implements CheckoutSdkInterface {
     if ($shipping_address && $shipping_preference !== 'no_shipping') {
       $params['purchase_units'][0]['shipping']['address'] = $shipping_address;
     }
-
     $params['application_context']['shipping_preference'] = strtoupper($shipping_preference);
+
+    // In case of the "mark" flow, a payment_method is already referenced by
+    // the order, when that is the case, we need to tell PayPal to display a
+    // "Pay now" button instead of a "Continue" button.
+    if (!$order->get('payment_method')->isEmpty()) {
+      $payment_method = $order->get('payment_method')->entity;
+
+      if ($payment_method->bundle() == 'paypal_checkout' && $payment_method->get('flow')->value == 'mark') {
+        $params['application_context']['user_action'] = 'PAY_NOW';
+      }
+    }
 
     if ($payer) {
       $params['payer'] = $payer;

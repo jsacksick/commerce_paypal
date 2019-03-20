@@ -92,25 +92,12 @@ class CheckoutController extends ControllerBase {
      * @var \Drupal\commerce_payment\Entity\PaymentMethodInterface|NULL $payment_method;
      */
     $payment_method = !$commerce_order->get('payment_method')->isEmpty() ? $commerce_order->get('payment_method')->entity : NULL;
-
-    if (!empty($payment_method) &&
-      $payment_method->bundle() == 'paypal_checkout' &&
-      !empty($payment_method->getRemoteId())) {
-      try {
-        $sdk->getOrder($payment_method->getRemoteId());
-        $sdk->updateOrder($payment_method->getRemoteId(), $commerce_order);
-        return new JsonResponse(['id' => $payment_method->getRemoteId()]);
-      }
-      catch (ClientException $exception) {
-        // Create a new order in PayPal if this one could not be updated.
-      }
-    }
     try {
       $response = $sdk->createOrder($commerce_order);
       $body = Json::decode($response->getBody()->getContents());
 
       // If order was already referencing a payment method, update it.
-      if (!empty($payment_method)) {
+      if (!empty($payment_method) && $payment_method->bundle() == 'paypal_checkout') {
         $payment_method->setRemoteId($body['id']);
         $payment_method->save();
       }
