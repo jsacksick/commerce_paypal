@@ -265,7 +265,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
       /** @var \Drupal\address\AddressInterface $address */
       $address = $billing_profile->address->first();
       if (!empty($address)) {
-        $payer['address'] = static::formatAddress($address);
+        $payer += static::formatAddress($address);
       }
     }
     $time = \Drupal::time()->getRequestTime();
@@ -308,7 +308,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
     // No need to pass a shipping_address if the shipping address collection
     // is configured to "no_shipping".
     if ($shipping_address && $shipping_preference !== 'no_shipping') {
-      $params['purchase_units'][0]['shipping']['address'] = $shipping_address;
+      $params['purchase_units'][0]['shipping'] = $shipping_address;
     }
     $params['application_context']['shipping_preference'] = strtoupper($shipping_preference);
 
@@ -389,27 +389,46 @@ class CheckoutSdk implements CheckoutSdkInterface {
     if (empty($shipping_profile) || $shipping_profile->get('address')->isEmpty()) {
       return $shipping_address;
     }
-    $shipping_address = static::formatAddress($shipping_profile->get('address')->first());
-
+    /** @var \Drupal\address\AddressInterface $address */
+    $address = $shipping_profile->get('address')->first();
+    $shipping_address = static::formatAddress($address, 'shipping');
     return $shipping_address;
   }
 
   /**
-   * {@inheritdoc}
+   * Formats the given address into a format expected by PayPal.
+   *
+   * @param \Drupal\address\AddressInterface $address
+   *   The address to format.
+   * @param string $type
+   *   The address type ("billing"|"shipping").
+   *
+   * @return array
+   *   The formatted address.
    */
-  public static function formatAddress(AddressInterface $address) {
-    return [
-      'name' => [
+  public static function formatAddress(AddressInterface $address, $type = 'billing') {
+    $return = [
+      'address' => [
+        'address_line_1' => $address->getAddressLine1(),
+        'address_line_2' => $address->getAddressLine2(),
+        'admin_area_2' => mb_substr($address->getLocality(), 0, 120),
+        'admin_area_1' => $address->getAdministrativeArea(),
+        'postal_code' => mb_substr($address->getPostalCode(), 0, 60),
+        'country_code' => $address->getCountryCode(),
+      ],
+    ];
+    if ($type == 'billing') {
+      $return['name'] = [
         'given_name' => $address->getGivenName(),
         'surname' => $address->getFamilyName(),
-      ],
-      'address_line_1' => $address->getAddressLine1(),
-      'address_line_2' => $address->getAddressLine2(),
-      'admin_area_2' => $address->getLocality(),
-      'admin_area_1' => $address->getAdministrativeArea(),
-      'postal_code' => $address->getPostalCode(),
-      'country_code' => $address->getCountryCode(),
-    ];
+      ];
+    }
+    elseif ($type == 'shipping') {
+      $return['name'] = [
+        'full_name' => mb_substr($address->getGivenName() . ' ' . $address->getFamilyName(), 0, 300),
+      ];
+    }
+    return $return;
   }
 
 }
