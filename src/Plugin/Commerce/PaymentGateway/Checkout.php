@@ -138,27 +138,42 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-
-    $form['client_id'] = [
+    $documentation_url = Url::fromUri('https://www.drupal.org/node/3042053')->toString();
+    $form['credentials'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('API Credentials'),
+      '#tree' => FALSE,
+    ];
+    $form['credentials']['help'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => [
+        'class' => ['form-item'],
+      ],
+      '#value' => $this->t('Refer to the <a href=":url" target="_blank">module documentation</a> to find your API credentials.', [':url' => $documentation_url]),
+    ];
+    $form['credentials']['client_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Client ID'),
       '#default_value' => $this->configuration['client_id'],
       '#maxlength' => 255,
       '#required' => TRUE,
+      '#parents' => array_merge($form['#parents'], ['client_id']),
     ];
-    $form['secret'] = [
+    $form['credentials']['secret'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Secret'),
       '#maxlength' => 255,
       '#default_value' => $this->configuration['secret'],
       '#required' => TRUE,
+      '#parents' => array_merge($form['#parents'], ['secret']),
     ];
     $form['intent'] = [
       '#type' => 'radios',
       '#title' => $this->t('Transaction type'),
       '#options' => [
-        'capture' => $this->t('Capture'),
-        'authorize' => $this->t('Authorize'),
+        'capture' => $this->t("Capture (capture payment immediately after customer's approval)"),
+        'authorize' => $this->t('Authorize (requires manual or automated capture after checkout)'),
       ],
       '#default_value' => $this->configuration['intent'],
     ];
