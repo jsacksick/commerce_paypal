@@ -34,6 +34,10 @@ use Zend\Diactoros\Response\JsonResponse;
  *   label = @Translation("PayPal Checkout [Preferred]"),
  *   display_label = @Translation("PayPal"),
  *   payment_method_types = {"paypal_checkout"},
+ *   modes = {
+ *     "test" = @Translation("Sandbox"),
+ *     "live" = @Translation("Live"),
+ *   },
  *   forms = {
  *     "add-payment-method" = "Drupal\commerce_paypal\PluginForm\Checkout\PaymentMethodAddForm",
  *   },
