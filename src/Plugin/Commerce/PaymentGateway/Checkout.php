@@ -179,6 +179,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         'capture' => $this->t("Capture (capture payment immediately after customer's approval)"),
         'authorize' => $this->t('Authorize (requires manual or automated capture after checkout)'),
       ],
+      '#description' => $this->t('For more information on capturing a prior authorization, please refer to <a href=":url" target="_blank">Capture an authorization</a>.', [':url' => 'https://docs.drupalcommerce.org/commerce2/user-guide/payments/capture']),
       '#default_value' => $this->configuration['intent'],
     ];
     $form['disable_funding'] = [
