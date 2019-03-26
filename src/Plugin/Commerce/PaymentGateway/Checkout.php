@@ -575,6 +575,8 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     if (strtolower($response['status']) !== 'completed') {
       throw new PaymentGatewayException(sprintf('Invalid state returned by PayPal. Expected: ("%s"), Actual: ("%s").', 'COMPLETED', $response['status']));
     }
+    $payment->setRemoteId($response['id']);
+    $payment->setRemoteState($response['status']);
     $payment->setRefundedAmount($new_refunded_amount);
     $payment->save();
   }
