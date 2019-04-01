@@ -37,7 +37,7 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
     $form['paypal_smart_payment_buttons'] = [
       '#type' => 'commerce_paypal_smart_payment_buttons',
       '#commit' => FALSE,
-      '#order_id' => $order_id,
+      '#order' => $order,
       '#payment_gateway' => $payment_gateway,
       '#weight' => 100,
     ];
@@ -70,7 +70,7 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
   $form['paypal_smart_payment_buttons'] = [
     '#type' => 'commerce_paypal_smart_payment_buttons',
     '#commit' => TRUE,
-    '#order_id' => $order->id(),
+    '#order' => $order,
     '#payment_gateway' => $payment_gateway,
     '#weight' => 10,
   ];

@@ -24,7 +24,7 @@ class SmartPaymentButtons extends RenderElement {
     return [
       '#html_id' => 'paypal-buttons-container',
       '#commit' => FALSE,
-      '#order_id' => NULL,
+      '#order' => NULL,
       '#payment_gateway' => NULL,
       '#pre_render' => [
         [$class, 'preRender'],
@@ -39,7 +39,7 @@ class SmartPaymentButtons extends RenderElement {
    *   The $element
    */
   public static function preRender($element) {
-    if (empty($element['#payment_gateway']) || empty($element['#html_id'])) {
+    if (empty($element['#payment_gateway']) || empty($element['#html_id']) || empty($element['#order'])) {
       return $element;
     }
     /**
@@ -54,6 +54,10 @@ class SmartPaymentButtons extends RenderElement {
     if (empty($configuration['client_id'])) {
       return $element;
     }
+    /**
+     * @var \Drupal\commerce_order\Entity\OrderInterface $order
+     */
+    $order = $element['#order'];
 
     $attributes = new Attribute();
     $attributes
@@ -62,13 +66,14 @@ class SmartPaymentButtons extends RenderElement {
 
     $route_options = [
       'commerce_payment_gateway' => $payment_gateway->id(),
-      'commerce_order' => $element['#order_id'],
+      'commerce_order' => $order->id(),
     ];
     $options = [
       'query' => [
         'client-id' => $configuration['client_id'],
         'intent' => $configuration['intent'],
         'commit' => $element['#commit'] ? 'true' : 'false',
+        'currency' => $order->getTotalPrice()->getCurrencyCode(),
       ],
     ];
     if (!empty($configuration['disable_funding'])) {
