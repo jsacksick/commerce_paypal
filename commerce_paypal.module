@@ -34,6 +34,10 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
     if (!$payment_gateway->getPlugin() instanceof CheckoutInterface) {
       continue;
     }
+    $config = $payment_gateway->getPlugin()->getConfiguration();
+    if (!$config['enable_on_cart']) {
+      continue;
+    }
     $form['paypal_smart_payment_buttons'] = [
       '#type' => 'commerce_paypal_smart_payment_buttons',
       '#commit' => FALSE,

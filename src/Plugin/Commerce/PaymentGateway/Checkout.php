@@ -134,6 +134,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'update_billing_profile' => TRUE,
       'update_shipping_profile' => TRUE,
       'style' => [],
+      'enable_on_cart' => TRUE,
     ] + parent::defaultConfiguration();
   }
 
@@ -184,7 +185,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
     $form['disable_funding'] = [
       '#title' => $this->t('Disable funding sources'),
-      '#description' => $this->t('The disabled funding sources for the transaction. Any funding sources passed are not displayed in the Smart Payment Buttons. By default, funding source eligibility is smartly decided based on a variety of factors.'),
+      '#description' => $this->t('The disabled funding sources for the transaction. Any funding sources passed are not displayed in the Smart payment Buttons. By default, funding source eligibility is smartly decided based on a variety of factors.'),
       '#type' => 'checkboxes',
       '#options' => [
         'card' => $this->t('Credit or Debit Cards'),
@@ -195,7 +196,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     ];
     $form['disable_card'] = [
       '#title' => $this->t('Disable card types'),
-      '#description' => $this->t('The disabled cards for the transaction. Any cards passed do not display in the Smart Payment Buttons. By default, card eligibility is smartly decided based on a variety of factors.'),
+      '#description' => $this->t('The disabled cards for the transaction. Any cards passed do not display in the Smart payment Buttons. By default, card eligibility is smartly decided based on a variety of factors.'),
       '#type' => 'checkboxes',
       '#options' => [
         'visa' => $this->t('Visa'),
@@ -305,6 +306,11 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
         ],
       ],
     ];
+    $form['enable_on_cart'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Show the Smart payment buttons on the cart page.'),
+      '#default_value' => $this->configuration['enable_on_cart'],
+    ];
 
     return $form;
   }
@@ -355,6 +361,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       'shipping_preference',
       'update_billing_profile',
       'update_shipping_profile',
+      'enable_on_cart',
     ];
 
     // Only save the style settings if the customize buttons checkbox is checked.

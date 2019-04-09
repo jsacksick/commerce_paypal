@@ -49,9 +49,9 @@ class SmartPaymentButtons extends RenderElement {
     if (!$payment_gateway->getPlugin() instanceof CheckoutInterface) {
       return $element;
     }
-    $configuration = $payment_gateway->getPluginConfiguration();
+    $config = $payment_gateway->getPlugin()->getConfiguration();
 
-    if (empty($configuration['client_id'])) {
+    if (empty($config['client_id'])) {
       return $element;
     }
     /**
@@ -70,17 +70,17 @@ class SmartPaymentButtons extends RenderElement {
     ];
     $options = [
       'query' => [
-        'client-id' => $configuration['client_id'],
-        'intent' => $configuration['intent'],
+        'client-id' => $config['client_id'],
+        'intent' => $config['intent'],
         'commit' => $element['#commit'] ? 'true' : 'false',
         'currency' => $order->getTotalPrice()->getCurrencyCode(),
       ],
     ];
-    if (!empty($configuration['disable_funding'])) {
-      $options['query']['disable-funding'] = implode(',', $configuration['disable_funding']);
+    if (!empty($config['disable_funding'])) {
+      $options['query']['disable-funding'] = implode(',', $config['disable_funding']);
     }
-    if (!empty($configuration['disable_card'])) {
-      $options['query']['disable-card'] = implode(',', $configuration['disable_card']);
+    if (!empty($config['disable_card'])) {
+      $options['query']['disable-card'] = implode(',', $config['disable_card']);
     }
     $element['#attached']['library'][] = 'commerce_paypal/paypal_checkout';
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
@@ -88,7 +88,7 @@ class SmartPaymentButtons extends RenderElement {
       'elementSelector' => '.paypal-buttons-container',
       'onCreateUri' => Url::fromRoute('commerce_paypal.checkout.create', $route_options)->toString(),
       'onApproveUri' => Url::fromRoute('commerce_paypal.checkout.approve', $route_options)->toString(),
-      'style' => $configuration['style'],
+      'style' => $config['style'],
     ];
     $element['#markup'] = Markup::create(sprintf('<div %s></div>', $attributes));
     return $element;
