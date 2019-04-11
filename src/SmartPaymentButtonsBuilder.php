@@ -21,10 +21,16 @@ class SmartPaymentButtonsBuilder implements SmartPaymentButtonsBuilderInterface 
       return $element;
     }
     $config = $payment_gateway->getPlugin()->getConfiguration();
-    $route_options = [
+    $create_url = Url::fromRoute('commerce_paypal.checkout.create', [
       'commerce_payment_gateway' => $payment_gateway->id(),
       'commerce_order' => $order->id(),
-    ];
+    ]);
+    // Note that we're not making use of the payment return route since it
+    // cannot be called from the cart page because of the checkout step
+    // validation.
+    $return_url = Url::fromRoute('commerce_paypal.checkout.approve', [
+      'commerce_order' => $order->id(),
+    ]);
     $options = [
       'query' => [
         'client-id' => $config['client_id'],
@@ -43,8 +49,9 @@ class SmartPaymentButtonsBuilder implements SmartPaymentButtonsBuilderInterface 
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
       'src' => Url::fromUri('https://www.paypal.com/sdk/js', $options)->toString(),
       'elementSelector' => '.paypal-buttons-container',
-      'onCreateUri' => Url::fromRoute('commerce_paypal.checkout.create', $route_options)->toString(),
-      'onApproveUri' => Url::fromRoute('commerce_paypal.checkout.approve', $route_options)->toString(),
+      'onCreateUrl' => $create_url->toString(),
+      'onApproveUrl' => $return_url->toString(),
+      'flow' => $commit ? 'mark' : 'shortcut',
       'style' => $config['style'],
     ];
     $element += [

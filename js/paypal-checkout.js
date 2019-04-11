@@ -6,7 +6,7 @@
       $(settings['elementSelector']).once().each(function() {
         paypal.Buttons({
           createOrder: function() {
-            return fetch(settings.onCreateUri)
+            return fetch(settings.onCreateUrl)
               .then(function(res) {
                 return res.json();
               }).then(function(data) {
@@ -14,16 +14,21 @@
               });
           },
           onApprove: function (data) {
-            return fetch(settings.onApproveUri, {
+            return fetch(settings.onApproveUrl, {
               method: 'post',
               body: JSON.stringify({
-                id: data.orderID
+                id: data.orderID,
+                flow: settings.flow
               })
             }).then(function(res) {
               return res.json();
             }).then(function(data) {
-              if (data.hasOwnProperty('redirectUri')) {
-                window.location.href = data.redirectUri;
+              if (data.hasOwnProperty('redirectUrl')) {
+                window.location.href = data.redirectUrl;
+              }
+              else {
+                // Force a reload to see the eventual error messages.
+                location.reload(true);
               }
             });
           },

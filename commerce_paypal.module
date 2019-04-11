@@ -53,8 +53,7 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
   }
   /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
   $order = \Drupal::routeMatch()->getParameter('commerce_order');
-  if ($order->get('payment_method')->isEmpty() ||
-    $order->get('payment_gateway')->isEmpty() ||
+  if ($order->get('payment_gateway')->isEmpty() ||
     $order->get('checkout_flow')->target_id == 'paypal_checkout') {
     return;
   }
@@ -67,4 +66,8 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
   $builder = \Drupal::service('commerce_paypal.smart_payment_buttons_builder');
   $form['paypal_smart_payment_buttons'] = $builder->build($order, $payment_gateway, TRUE);
   $form['actions']['#access'] = FALSE;
+  // The payment_information pane on the review page is useless in our case.
+  if (isset($form['review']['payment_information'])) {
+    $form['review']['payment_information']['#access'] = FALSE;
+  }
 }
