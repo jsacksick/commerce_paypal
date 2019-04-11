@@ -23,11 +23,11 @@ use Drupal\profile\Entity\ProfileInterface;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Zend\Diactoros\Response\JsonResponse;
 
 /**
- * Provides the Paypal Checkout payment gateway.
+ * Provides the PayPal Checkout payment gateway.
  *
  * @CommercePaymentGateway(
  *   id = "paypal_checkout",
