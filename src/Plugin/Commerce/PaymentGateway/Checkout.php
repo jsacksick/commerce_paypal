@@ -336,8 +336,8 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     }
     catch (ClientException $exception) {
       $this->messenger()->addError($this->t('Invalid client_id or secret specified.'));
-      $form_state->setError($form['client_id']);
-      $form_state->setError($form['secret']);
+      $form_state->setError($form['credentials']['client_id']);
+      $form_state->setError($form['credentials']['secret']);
     }
   }
 
