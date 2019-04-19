@@ -618,17 +618,13 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
     // Up until this point, the remote_id is unknown,
     if (!$order->get('payment_method')->isEmpty() &&
       $order->get('payment_method')->entity->bundle() == 'paypal_checkout') {
-      /**
-       * @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method
-       */
+      /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
       $payment_method = $order->get('payment_method')->entity;
       if ($payment_method->getRemoteId() != $paypal_order['id']) {
         $payment_method->setRemoteId($paypal_order['id']);
         $payment_method->save();
       }
-      /**
-       * @var \Drupal\commerce_checkout\Entity\CheckoutFlowInterface $checkout_flow
-       */
+      /** @var \Drupal\commerce_checkout\Entity\CheckoutFlowInterface $checkout_flow */
       $checkout_flow = $order->get('checkout_flow')->entity;
       $current_checkout_step = $order->get('checkout_step')->value;
       $order->set('payment_gateway', $this->entityId);
@@ -636,9 +632,7 @@ class Checkout extends OnsitePaymentGatewayBase implements CheckoutInterface {
       $order->save();
     }
     else {
-      /**
-       * @var \Drupal\commerce_payment\PaymentMethodStorageInterface $payment_method_storage
-       */
+      /** @var \Drupal\commerce_payment\PaymentMethodStorageInterface $payment_method_storage */
       $payment_method_storage = $this->entityTypeManager->getStorage('commerce_payment_method');
       // The payment method is only created on onApprove() when in the
       // "shortcut" flow.

@@ -88,9 +88,7 @@ class CheckoutController extends ControllerBase {
     }
     $config = $commerce_payment_gateway->getPluginConfiguration();
     $sdk = $this->checkoutSdkFactory->get($config);
-    /**
-     * @var \Drupal\commerce_payment\Entity\PaymentMethodInterface|NULL $payment_method;
-     */
+    /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface|NULL $payment_method; */
     $payment_method = !$commerce_order->get('payment_method')->isEmpty() ? $commerce_order->get('payment_method')->entity : NULL;
     try {
       $response = $sdk->createOrder($commerce_order);

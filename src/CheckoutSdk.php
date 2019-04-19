@@ -386,9 +386,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
     if (!$order->hasField('shipments') || $order->get('shipments')->isEmpty()) {
       return $shipping_address;
     }
-    /**
-     * @var \Drupal\commerce_shipping\Entity\ShipmentInterface $first_shipment
-     */
+    /** @var \Drupal\commerce_shipping\Entity\ShipmentInterface $first_shipment */
     $first_shipment = $order->get('shipments')->first()->entity;
     $shipping_profile = $first_shipment->getShippingProfile();
     if (empty($shipping_profile) || $shipping_profile->get('address')->isEmpty()) {
