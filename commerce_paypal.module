@@ -5,8 +5,9 @@
  * Implements PayPal payment services for use with Drupal Commerce.
  */
 
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway\CheckoutInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter().
@@ -48,6 +49,16 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
  * Implements hook_form_BASE_FORM_ID_alter(). for commerce_checkout_flow.
  */
 function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInterface $form_state) {
+  if (isset($form['payment_information'])) {
+    /** @var \Drupal\commerce_payment\PaymentOption $payment_option */
+    foreach ($form['payment_information']['#payment_options'] as $id => $payment_option) {
+      if ($payment_option->getPaymentGatewayId() != 'paypal_checkout') {
+        continue;
+      }
+      $form['payment_information']['payment_method']['#options'][$id] = Markup::create('<img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-small.png" alt="PayPal Acceptance" style="vertical-align: middle">');
+    }
+  }
+  // Inject the Smart payment buttons on the review page.
   if ($form['#step_id'] !== 'review') {
     return;
   }
