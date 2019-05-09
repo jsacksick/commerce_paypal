@@ -2,26 +2,38 @@
   'use strict';
 
   Drupal.paypalCheckout = {
+    makeCall: function(url, settings) {
+      var deferred = $.Deferred();
+      settings = settings || {};
+
+      var ajaxSettings = {
+        dataType: 'json',
+        url: url,
+        success: function(data) {
+          deferred.resolve(data);
+        }
+      };
+      $.extend(ajaxSettings, settings);
+      $.ajax(ajaxSettings);
+
+      return deferred.promise();
+    },
     renderButtons: function(settings) {
       $(settings['elementSelector']).once().each(function() {
         paypal.Buttons({
           createOrder: function() {
-            return fetch(settings.onCreateUrl)
-              .then(function(res) {
-                return res.json();
-              }).then(function(data) {
-                return data.id ? data.id : '';
-              });
+            return Drupal.paypalCheckout.makeCall(settings.onCreateUrl).then(function(data) {
+              return data.id;
+            });
           },
           onApprove: function (data) {
-            return fetch(settings.onApproveUrl, {
-              method: 'post',
-              body: JSON.stringify({
+            return Drupal.paypalCheckout.makeCall(settings.onApproveUrl, {
+              type: 'POST',
+              contentType: "application/json; charset=utf-8",
+              data: JSON.stringify({
                 id: data.orderID,
                 flow: settings.flow
               })
-            }).then(function(res) {
-              return res.json();
             }).then(function(data) {
               if (data.hasOwnProperty('redirectUrl')) {
                 window.location.href = data.redirectUrl;
