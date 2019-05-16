@@ -36,6 +36,9 @@ use Symfony\Component\HttpFoundation\Response;
  *     "test" = @Translation("Sandbox"),
  *     "live" = @Translation("Live"),
  *   },
+ *   forms = {
+ *     "offsite-payment" = "Drupal\commerce_paypal\PluginForm\Checkout\PaymentOffsiteForm",
+ *   },
  *   credit_card_types = {
  *     "amex", "discover", "mastercard", "visa",
  *   },
