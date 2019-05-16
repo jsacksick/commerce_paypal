@@ -20,6 +20,7 @@
             });
           },
           onApprove: function (data) {
+            Drupal.paypalCheckout.addLoader();
             return Drupal.paypalCheckout.makeCall(settings.onApproveUrl, {
               type: 'POST',
               contentType: "application/json; charset=utf-8",
@@ -29,7 +30,7 @@
               })
             }).then(function(data) {
               if (data.hasOwnProperty('redirectUrl')) {
-                window.location.href = data.redirectUrl;
+                window.location.assign(data.redirectUrl);
               }
               else {
                 // Force a reload to see the eventual error messages.
@@ -60,6 +61,12 @@
         }
       };
       waitForSdk(settings);
+    },
+    addLoader: function() {
+      var $background = $('<div id="paypal-background-overlay"></div>');
+      var $loader = $('<div class="paypal-background-overlay-loader"></div>');
+      $background.append($loader);
+      $('body').append($background);
     }
   };
 
