@@ -98,3 +98,11 @@ function commerce_paypal_post_update_2(&$sandbox = NULL) {
     $sandbox['#finished'] = ($sandbox['total_count'] - $sandbox['current_count']) / $sandbox['total_count'];
   }
 }
+
+/**
+ * Uninstall the PayPal Checkout payment method type.
+ */
+function commerce_paypal_post_update_3() {
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('commerce_payment_method');
+  \Drupal::service('entity.bundle_plugin_installer')->uninstallBundles($entity_type, ['commerce_paypal']);
+}
