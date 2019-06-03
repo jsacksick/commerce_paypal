@@ -81,10 +81,13 @@ function commerce_paypal_post_update_2(&$sandbox = NULL) {
       $order->set('payment_method', NULL);
       $order->setRefreshState(OrderInterface::REFRESH_SKIP);
       if (!empty($payment_method->getRemoteId())) {
-        $order->setData('commerce_paypal_checkout', [
+        $paypal_checkout_data = [
           'remote_id' => $payment_method->getRemoteId(),
-          'flow' => $payment_method->get('flow')->value,
-        ]);
+        ];
+        if ($payment_method->hasField('flow') && !$payment_method->get('flow')->isEmpty()) {
+          $paypal_checkout_data['flow'] = $payment_method->get('flow')->value;
+        }
+        $order->setData('commerce_paypal_checkout', $paypal_checkout_data);
       }
       $order->save();
     }
