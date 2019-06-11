@@ -109,3 +109,14 @@ function commerce_paypal_post_update_3() {
   $entity_type = \Drupal::entityTypeManager()->getDefinition('commerce_payment_method');
   \Drupal::service('entity.bundle_plugin_installer')->uninstallBundles($entity_type, ['commerce_paypal']);
 }
+
+/**
+ * Uninstall the flow field.
+ */
+function commerce_paypal_post_update_4() {
+  $original_storage_definitions = \Drupal::service('entity.last_installed_schema.repository')->getLastInstalledFieldStorageDefinitions('commerce_payment_method');
+  if (isset($original_storage_definitions['flow'])) {
+    \Drupal::service('field_definition.listener')->onFieldDefinitionDelete($original_storage_definitions['flow']);
+    \Drupal::service('field_storage_definition.listener')->onFieldStorageDefinitionDelete($original_storage_definitions['flow']);
+  }
+}
