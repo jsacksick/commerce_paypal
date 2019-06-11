@@ -42,6 +42,7 @@ use Symfony\Component\HttpFoundation\Response;
  *   credit_card_types = {
  *     "amex", "discover", "mastercard", "visa",
  *   },
+ *   payment_type = "paypal_checkout",
  *   requires_billing_information = FALSE,
  * )
  */
@@ -447,6 +448,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
 
     // If we couldn't find a state to map to, stop here.
     if (!$state) {
+      $this->logger->debug('PayPal remote payment debug: <pre>@remote_payment</pre>', ['@remote_payment' => print_r($remote_payment, TRUE)]);
       throw new PaymentGatewayException(sprintf('The PayPal payment is in a state we cannot handle. Remote state: %s.', $remote_state));
     }
 
@@ -646,11 +648,13 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
     $mapping = [
       'authorize' => [
         'created' => 'authorization',
+        'pending' => 'pending',
         'voided' => 'authorization_voided',
         'expired' => 'authorization_expired',
       ],
       'capture' => [
         'completed' => 'completed',
+        'pending' => 'pending',
         'partially_refunded' => 'partially_refunded',
       ],
     ];
