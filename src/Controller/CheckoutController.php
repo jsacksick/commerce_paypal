@@ -11,6 +11,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Url;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Log\LoggerInterface;
@@ -46,6 +47,13 @@ class CheckoutController extends ControllerBase {
   protected $logger;
 
   /**
+   * The messenger.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
    * Constructs a PayPalCheckoutController object.
    *
    * @param \Drupal\commerce_paypal\CheckoutSdkFactoryInterface $checkout_sdk_factory
@@ -54,11 +62,14 @@ class CheckoutController extends ControllerBase {
    *   The entity type manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger.
    */
-  public function __construct(CheckoutSdkFactoryInterface $checkout_sdk_factory, EntityTypeManagerInterface $entity_type_manager, LoggerInterface $logger) {
+  public function __construct(CheckoutSdkFactoryInterface $checkout_sdk_factory, EntityTypeManagerInterface $entity_type_manager, LoggerInterface $logger, MessengerInterface $messenger) {
     $this->checkoutSdkFactory = $checkout_sdk_factory;
     $this->entityTypeManager = $entity_type_manager;
     $this->logger = $logger;
+    $this->messenger = $messenger;
   }
 
   /**
@@ -68,7 +79,8 @@ class CheckoutController extends ControllerBase {
     return new static(
       $container->get('commerce_paypal.checkout_sdk_factory'),
       $container->get('entity_type.manager'),
-      $container->get('logger.channel.commerce_paypal')
+      $container->get('logger.channel.commerce_paypal'),
+      $container->get('messenger')
     );
   }
 

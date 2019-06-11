@@ -447,7 +447,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
 
     // If we couldn't find a state to map to, stop here.
     if (!$state) {
-      throw new PaymentGatewayException('The PayPal payment is in a state we cannot handle.');
+      throw new PaymentGatewayException(sprintf('The PayPal payment is in a state we cannot handle. Remote state: %s.', $remote_state));
     }
 
     $payment_amount = Price::fromArray([
