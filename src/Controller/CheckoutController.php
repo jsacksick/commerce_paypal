@@ -175,6 +175,7 @@ class CheckoutController extends ControllerBase {
       // will be reloaded to show errors.
       $this->logger->error($e->getMessage());
       $this->messenger->addError(t('Payment failed at the payment server. Please review your information and try again.'));
+      return new JsonResponse();
     }
   }
 
