@@ -19,11 +19,19 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
   if (empty($view->result)) {
     return;
   }
-  $order_id = $view->args[0];
   $entity_type_manager = \Drupal::entityTypeManager();
+  $order_id = $view->args[0];
+  /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+  $order = $entity_type_manager->getStorage('commerce_order')->load($order_id);
+
+  // Skip injecting the smart payment buttons if the order total is zero or
+  // negative.
+  if (!$order->getTotalPrice()->isPositive()) {
+    return;
+  }
+
   /** @var \Drupal\commerce_payment\PaymentGatewayStorageInterface $payment_gateway_storage */
   $payment_gateway_storage = $entity_type_manager->getStorage('commerce_payment_gateway');
-  $order = $entity_type_manager->getStorage('commerce_order')->load($order_id);
   // Load the payment gateways. This fires an event for filtering the
   // available gateways, and then evaluates conditions on all remaining ones.
   $payment_gateways = $payment_gateway_storage->loadMultipleForOrder($order);
