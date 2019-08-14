@@ -57,7 +57,7 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
  * Implements hook_form_BASE_FORM_ID_alter(). for commerce_checkout_flow.
  */
 function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInterface $form_state) {
-  if (isset($form['payment_information'])) {
+  if (isset($form['payment_information']['#payment_options'])) {
     /** @var \Drupal\commerce_payment\PaymentOption $payment_option */
     foreach ($form['payment_information']['#payment_options'] as $id => $payment_option) {
       if ($payment_option->getPaymentGatewayId() != 'paypal_checkout') {
@@ -74,6 +74,11 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
   $order = \Drupal::routeMatch()->getParameter('commerce_order');
   if ($order->get('payment_gateway')->isEmpty() ||
     $order->get('checkout_flow')->target_id == 'paypal_checkout') {
+    return;
+  }
+  // Skip injecting the smart payment buttons if the order total is zero or
+  // negative.
+  if (!$order->getTotalPrice()->isPositive()) {
     return;
   }
   /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
