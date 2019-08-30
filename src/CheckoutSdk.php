@@ -265,10 +265,10 @@ class CheckoutSdk implements CheckoutSdkInterface {
       $payer['email_address'] = $order->getEmail();
     }
 
-    $billing_profile = $order->getBillingProfile();
-    if (!empty($billing_profile)) {
+    $profiles = $order->collectProfiles();
+    if (isset($profiles['billing'])) {
       /** @var \Drupal\address\AddressInterface $address */
-      $address = $billing_profile->address->first();
+      $address = $profiles['billing']->address->first();
       if (!empty($address)) {
         $payer += static::formatAddress($address);
       }
@@ -293,7 +293,15 @@ class CheckoutSdk implements CheckoutSdkInterface {
         'brand_name' => mb_substr($order->getStore()->label(), 0, 127),
       ],
     ];
-    $shipping_address = $this->collectShippingAddress($order);
+
+    $shipping_address = [];
+    if (isset($profiles['shipping'])) {
+      /** @var \Drupal\address\AddressInterface $address */
+      $address = $profiles['shipping']->address->first();
+      if (!empty($address)) {
+        $shipping_address = static::formatAddress($address, 'shipping');
+      }
+    }
     $shipping_preference = $this->config['shipping_preference'];
 
     // The shipping module isn't enabled, override the shipping preference
@@ -368,34 +376,6 @@ class CheckoutSdk implements CheckoutSdkInterface {
     }
 
     return $adjustments_total;
-  }
-
-  /**
-   * Collect the shipping address from the first referenced shipment.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return array
-   *   The formatted shipping address extracted from the first referenced
-   *   shipment, an empty array if no shipping profile was found.
-   */
-  protected function collectShippingAddress(OrderInterface $order) {
-    $shipping_address = [];
-
-    if (!$order->hasField('shipments') || $order->get('shipments')->isEmpty()) {
-      return $shipping_address;
-    }
-    /** @var \Drupal\commerce_shipping\Entity\ShipmentInterface $first_shipment */
-    $first_shipment = $order->get('shipments')->first()->entity;
-    $shipping_profile = $first_shipment->getShippingProfile();
-    if (empty($shipping_profile) || $shipping_profile->get('address')->isEmpty()) {
-      return $shipping_address;
-    }
-    /** @var \Drupal\address\AddressInterface $address */
-    $address = $shipping_profile->get('address')->first();
-    $shipping_address = static::formatAddress($address, 'shipping');
-    return $shipping_address;
   }
 
   /**
