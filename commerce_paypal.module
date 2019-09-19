@@ -11,6 +11,19 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
 
 /**
+ * Implements hook_theme().
+ */
+function commerce_paypal_theme() {
+  $theme = [
+    'commerce_paypal_checkout_card_form' => [
+      'variables' => [],
+    ],
+  ];
+
+  return $theme;
+}
+
+/**
  * Implements hook_form_BASE_FORM_ID_alter().
  */
 function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form, FormStateInterface $form_state, $form_id) {
@@ -58,7 +71,10 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
  * Implements hook_form_BASE_FORM_ID_alter() for commerce_checkout_flow.
  */
 function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+  $order = \Drupal::routeMatch()->getParameter('commerce_order');
   if (isset($form['payment_information']['#payment_options'])) {
+    $paypal_checkout_gateway = FALSE;
     /** @var \Drupal\commerce_payment\PaymentOption $payment_option */
     foreach ($form['payment_information']['#payment_options'] as $id => $payment_option) {
       $payment_gateway = PaymentGateway::load($payment_option->getPaymentGatewayId());
@@ -66,14 +82,19 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
         continue;
       }
       $form['payment_information']['payment_method']['#options'][$id] = Markup::create('<img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-small.png" alt="PayPal Acceptance" style="vertical-align: middle">');
+      $paypal_checkout_gateway = $payment_gateway;
+    }
+
+    if ($paypal_checkout_gateway && $form['payment_information']['payment_method']['#default_value'] === $paypal_checkout_gateway->id()) {
+      /** @var \Drupal\commerce_paypal\HostedFieldsBuilderInterface $builder */
+      $builder = \Drupal::service('commerce_paypal.hosted_fields_builder');
+      $form['payment_information']['paypal_checkout_form'] = $builder->build($order, $paypal_checkout_gateway);
     }
   }
   // Inject the Smart payment buttons on the review page.
   if ($form['#step_id'] !== 'review') {
     return;
   }
-  /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
-  $order = \Drupal::routeMatch()->getParameter('commerce_order');
   if ($order->get('payment_gateway')->isEmpty() ||
     $order->get('checkout_flow')->target_id == 'paypal_checkout') {
     return;

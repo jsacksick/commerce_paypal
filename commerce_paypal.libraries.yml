@@ -9,3 +9,12 @@ paypal_checkout:
     - core/drupal
     - core/jquery
     - core/jquery.once
+
+paypal_checkout_hosted_fields:
+  js:
+    js/paypal-checkout-hosted-fields.js: {}
+  dependencies:
+    - core/drupalSettings
+    - core/drupal
+    - core/jquery
+    - core/jquery.once

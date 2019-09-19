@@ -9,8 +9,10 @@ use Drupal\commerce_paypal\Event\CheckoutOrderRequestEvent;
 use Drupal\commerce_paypal\Event\PayPalEvents;
 use Drupal\commerce_price\Calculator;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -83,6 +85,20 @@ class CheckoutSdk implements CheckoutSdkInterface {
       'auth' => [$this->config['client_id'], $this->config['secret']],
       'form_params' => [
         'grant_type' => 'client_credentials',
+      ],
+    ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getClientToken() {
+    $response = $this->getAccessToken();
+    $body = Json::decode($response->getBody()->getContents());
+    return $this->client->post('/v1/identity/generate-token', [
+      'headers' => [
+        'Authorization' => $body['access_token'],
+        'Content-Type' => 'application/json',
       ],
     ]);
   }

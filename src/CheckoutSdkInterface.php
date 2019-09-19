@@ -15,6 +15,13 @@ interface CheckoutSdkInterface {
   public function getAccessToken();
 
   /**
+   * Gets a client token.
+   *
+   * @return \Psr\Http\Message\ResponseInterface
+   */
+  public function getClientToken();
+
+  /**
    * Creates an order in PayPal.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
