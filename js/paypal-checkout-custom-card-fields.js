@@ -20,6 +20,7 @@
         return;
       }
       var $form = $cardFields.closest('form');
+      var $submit = $form.find('.button--primary');
       paypal.HostedFields.render({
         createOrder: function() {
           return Drupal.paypalCheckout.makeCall(Drupal.paypalCheckout.onCreateUrl).then(function(data) {
@@ -58,27 +59,42 @@
           if ($(Drupal.paypalCheckout.cardFieldsSelector).length === 0) {
             return;
           }
+          // Disable the Continue button.
+          $submit.attr("disabled", "disabled");
           event.preventDefault();
+          var message = '';
+          var $messagesContainer = $(Drupal.paypalCheckout.cardFieldsSelector + ' .paypal-messages');
+          $messagesContainer.html('');
           var state = hostedFields.getState();
           var formValid = Object.keys(state.fields).every(function(key) {
-            return state.fields[key].isValid;
+            var isValid = state.fields[key].isValid;
+            if (!isValid) {
+              message += Drupal.t('The @field you entered is invalid.', {'@field': key}) + '<br>';
+            }
+            return isValid;
           });
-          if (formValid) {
-            hostedFields.submit({
-              contingencies: ['3D_SECURE']
-            }).then(function(payload) {
-              // @todo: Implement 3D secure verification.
-              return Drupal.paypalCheckout.makeCall(Drupal.paypalCheckout.onSubmitUrl, {
-                type: 'POST',
-                contentType: "application/json; charset=utf-8",
-                data: JSON.stringify({
-                  id: payload.orderId
-                })
-              }).then(function(data) {
-                event.currentTarget.submit();
-              });
-            });
+
+          if (!formValid) {
+            message += Drupal.t('Please check your details and try again.');
+            $messagesContainer.html(Drupal.theme('commercePaypalError', message));
+            $submit.attr("disabled", false);
+            return;
           }
+          Drupal.paypalCheckout.addLoader();
+          hostedFields.submit({
+            contingencies: ['3D_SECURE']
+          }).then(function(payload) {
+            // @todo: Implement 3D secure verification.
+            return Drupal.paypalCheckout.makeCall(Drupal.paypalCheckout.onSubmitUrl, {
+              type: 'POST',
+              contentType: "application/json; charset=utf-8",
+              data: JSON.stringify({
+                id: payload.orderId
+              })
+            }).then(function(data) {
+              event.currentTarget.submit();
+            });
+          });
         });
       });
 
@@ -95,6 +111,12 @@
         }
       };
       waitForSdk();
+    },
+    addLoader: function() {
+      var $background = $('<div id="paypal-background-overlay"></div>');
+      var $loader = $('<div class="paypal-background-overlay-loader"></div>');
+      $background.append($loader);
+      $('body').append($background);
     }
   };
 
@@ -113,5 +135,14 @@
       Drupal.paypalCheckout.initialize(context);
     }
   };
+
+  $.extend(Drupal.theme, /** @lends Drupal.theme */{
+    commercePaypalError: function (message) {
+      return $('<div role="alert">' +
+        '<div class="messages messages--error">' + message + '</div>' +
+        '</div>'
+      );
+    }
+  });
 
 })(jQuery, Drupal, drupalSettings);

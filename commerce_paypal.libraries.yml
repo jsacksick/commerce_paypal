@@ -14,6 +14,7 @@ paypal_checkout_custom_card_fields:
   css:
     theme:
       css/paypal-checkout-custom-card-fields.css: {}
+      css/paypal-checkout.css: {}
   js:
     js/paypal-checkout-custom-card-fields.js: {}
   dependencies:
