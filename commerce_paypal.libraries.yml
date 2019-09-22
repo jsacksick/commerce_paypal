@@ -10,9 +10,12 @@ paypal_checkout:
     - core/jquery
     - core/jquery.once
 
-paypal_checkout_hosted_fields:
+paypal_checkout_custom_card_fields:
+  css:
+    theme:
+      css/paypal-checkout-custom-card-fields.css: {}
   js:
-    js/paypal-checkout-hosted-fields.js: {}
+    js/paypal-checkout-custom-card-fields.js: {}
   dependencies:
     - core/drupalSettings
     - core/drupal

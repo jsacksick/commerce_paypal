@@ -23,3 +23,17 @@ commerce_paypal.checkout.approve:
     parameters:
       commerce_order:
         type: entity:commerce_order
+
+comemrce_paypal.checkout.custom_card_fields_submit:
+  path: '/commerce-paypal/checkout-submit/{commerce_payment_gateway}/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_paypal\Controller\CheckoutController::onSubmit'
+  requirements:
+    _custom_access: '\Drupal\commerce_checkout\Controller\CheckoutController::checkAccess'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_payment_gateway:
+        type: entity:commerce_payment_gateway
+      commerce_order:
+        type: entity:commerce_order

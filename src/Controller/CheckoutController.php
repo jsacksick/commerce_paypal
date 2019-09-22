@@ -179,4 +179,45 @@ class CheckoutController extends ControllerBase {
     }
   }
 
+  /**
+   * Stores the PayPal order id for a later capture.
+   *
+   * @param PaymentGatewayInterface $commerce_payment_gateway
+   *   The payment gateway.
+   * @param \Drupal\commerce_order\Entity\OrderInterface $commerce_order
+   *   The order.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   A response.
+   */
+  public function onSubmit(PaymentGatewayInterface $commerce_payment_gateway, OrderInterface $commerce_order, Request $request) {
+    if (!$commerce_payment_gateway->getPlugin() instanceof CheckoutInterface) {
+      throw new AccessException('Invalid payment gateway provided.');
+    }
+    $config = $commerce_payment_gateway->getPluginConfiguration();
+    $sdk = $this->checkoutSdkFactory->get($config);
+    $body = Json::decode($request->getContent());
+    try {
+      $response = $sdk->getOrder($body['id']);
+      $paypal_order = Json::decode($response->getBody()->getContents());
+
+      if ($paypal_order['status'] == 'CREATED') {
+        $commerce_order->setData('commerce_paypal_checkout', [
+          'remote_id' => $paypal_order['id'],
+          'flow' => 'custom_card_fields',
+          'intent' => strtolower($paypal_order['intent']),
+        ]);
+        $commerce_order->save();
+      }
+
+      return new JsonResponse(['id' => $body['id']]);
+    }
+    catch (ClientException $exception) {
+      $this->logger->error($exception->getMessage());
+      return new Response('', Response::HTTP_BAD_REQUEST);
+    }
+  }
+
 }

@@ -9,12 +9,11 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
- * Provides a helper for building the PayPal checkout hosted fields form.
+ * Provides a helper for building the PayPal custom card fields form.
  */
-class HostedFieldsBuilder implements HostedFieldsBuilderInterface {
+class CustomCardFieldsBuilder implements CustomCardFieldsBuilderInterface {
 
   /**
    * The PayPal Checkout SDK factory.
@@ -66,7 +65,8 @@ class HostedFieldsBuilder implements HostedFieldsBuilderInterface {
       'commerce_payment_gateway' => $payment_gateway->id(),
       'commerce_order' => $order->id(),
     ]);
-    $return_url = Url::fromRoute('commerce_paypal.checkout.approve', [
+    $return_url = Url::fromRoute('comemrce_paypal.checkout.custom_card_fields_submit', [
+      'commerce_payment_gateway' => $payment_gateway->id(),
       'commerce_order' => $order->id(),
     ]);
     $options = [
@@ -77,15 +77,16 @@ class HostedFieldsBuilder implements HostedFieldsBuilderInterface {
         'currency' => $order->getTotalPrice()->getCurrencyCode(),
       ],
     ];
-    $element['#attached']['library'][] = 'commerce_paypal/paypal_checkout_hosted_fields';
+    $element['#attached']['library'][] = 'commerce_paypal/paypal_checkout_custom_card_fields';
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
       'src' => Url::fromUri('https://www.paypal.com/sdk/js', $options)->toString(),
       'onCreateUrl' => $create_url->toString(),
-      'onApproveUrl' => $return_url->toString(),
+      'onSubmitUrl' => $return_url->toString(),
       'clientToken' => $client_token,
+      'cardFieldsSelector' => '#commerce-paypal-checkout-custom-card-fields',
     ];
     $element += [
-      '#theme' => 'commerce_paypal_checkout_card_form',
+      '#theme' => 'commerce_paypal_checkout_custom_card_fields',
     ];
     return $element;
   }

@@ -8,7 +8,7 @@ use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 /**
  * Provides an interface for the hosted fields builder.
  */
-interface HostedFieldsBuilderInterface {
+interface CustomCardFieldsBuilderInterface {
 
   /**
    * Build the PayPal Checkout card form.

@@ -31,6 +31,14 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterf
 interface CheckoutInterface extends OffsitePaymentGatewayInterface, SupportsAuthorizationsInterface, SupportsRefundsInterface {
 
   /**
+   * Returns the payment solution (e.g "smart_payment_buttons").
+   *
+   * @return string
+   *   The payment solution.
+   */
+  public function getSolution();
+
+  /**
    * Creates a payment.
    *
    * @param \Drupal\commerce_payment\Entity\PaymentInterface $payment

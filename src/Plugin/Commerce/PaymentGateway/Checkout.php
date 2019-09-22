@@ -125,6 +125,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
    */
   public function defaultConfiguration() {
     return [
+      'payment_solution' => 'smart_payment_buttons',
       'client_id' => '',
       'secret' => '',
       'intent' => 'capture',
@@ -145,6 +146,15 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
     $documentation_url = Url::fromUri('https://www.drupal.org/node/3042053')->toString();
+    $form['payment_solution'] = [
+      '#type' => 'select',
+      '#title' => $this->t('PayPal payment solution'),
+      '#options' => [
+        'smart_payment_buttons' => $this->t('PayPal Checkout Smart Payment Buttons'),
+        'custom_card_fields' => $this->t('PayPal Custom Card Fields'),
+      ],
+      '#default_value' => $this->configuration['payment_solution'],
+    ];
     $form['credentials'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('API Credentials'),
@@ -355,6 +365,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
     $values['disable_funding'] = array_filter($values['disable_funding']);
     $values['disable_card'] = array_filter($values['disable_card']);
     $keys = [
+      'payment_solution',
       'client_id',
       'secret',
       'intent',
@@ -393,6 +404,13 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * {@inheritdoc}
    */
+  public function getSolution() {
+    return $this->configuration['payment_solution'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function createPayment(PaymentInterface $payment) {
     $sdk = $this->checkoutSdkFactory->get($this->configuration);
     $order = $payment->getOrder();
@@ -402,9 +420,10 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
     }
     $remote_id = $checkout_data['remote_id'];
     $flow = $checkout_data['flow'];
-    // When in the shortcut flow, we need to update the order in PayPal to
-    // reflect the changes occurred since the payment was approved in PayPal.
-    if ($flow === 'shortcut') {
+    // When not in the "mark" flow, where the payment happens right after
+    // approving the purchase on PayPal, we need to update the order in PayPal
+    // to make sure it is up to date.
+    if ($flow != 'mark') {
       try {
         $sdk->updateOrder($remote_id, $order);
         $request = $sdk->getOrder($remote_id);
@@ -413,7 +432,9 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       catch (BadResponseException $exception) {
         throw new PaymentGatewayException($exception->getMessage());
       }
-      if (!in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
+      // When in the "shortcut" flow, the PayPal order status is expected to be
+      // "approved".
+      if ($flow == 'shortcut' && !in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
         throw new PaymentGatewayException(sprintf('Wrong remote order status. Expected: "approved"|"saved", Actual: %s.', $paypal_order['status']));
       }
     }
