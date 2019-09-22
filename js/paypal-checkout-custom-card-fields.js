@@ -4,7 +4,6 @@
   Drupal.paypalCheckout = {
     cardFieldsSelector: '',
     onCreateUrl: '',
-    onSubmitUrl: '',
     makeCall: function(url, params) {
       params = params || {};
       var ajaxSettings = {
@@ -84,16 +83,12 @@
           hostedFields.submit({
             contingencies: ['3D_SECURE']
           }).then(function(payload) {
-            // @todo: Implement 3D secure verification.
-            return Drupal.paypalCheckout.makeCall(Drupal.paypalCheckout.onSubmitUrl, {
-              type: 'POST',
-              contentType: "application/json; charset=utf-8",
-              data: JSON.stringify({
-                id: payload.orderId
-              })
-            }).then(function(data) {
+            if (!payload.hasOwnProperty('orderId')) {
+              $submit.attr("disabled", false);
+            }
+            else {
               event.currentTarget.submit();
-            });
+            }
           });
         });
       });

@@ -65,10 +65,6 @@ class CustomCardFieldsBuilder implements CustomCardFieldsBuilderInterface {
       'commerce_payment_gateway' => $payment_gateway->id(),
       'commerce_order' => $order->id(),
     ]);
-    $return_url = Url::fromRoute('comemrce_paypal.checkout.custom_card_fields_submit', [
-      'commerce_payment_gateway' => $payment_gateway->id(),
-      'commerce_order' => $order->id(),
-    ]);
     $options = [
       'query' => [
         'components' => 'hosted-fields',
@@ -81,7 +77,6 @@ class CustomCardFieldsBuilder implements CustomCardFieldsBuilderInterface {
     $element['#attached']['drupalSettings']['paypalCheckout'] = [
       'src' => Url::fromUri('https://www.paypal.com/sdk/js', $options)->toString(),
       'onCreateUrl' => $create_url->toString(),
-      'onSubmitUrl' => $return_url->toString(),
       'clientToken' => $client_token,
       'cardFieldsSelector' => '#commerce-paypal-checkout-custom-card-fields',
     ];
