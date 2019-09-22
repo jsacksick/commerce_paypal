@@ -64,7 +64,10 @@
             return state.fields[key].isValid;
           });
           if (formValid) {
-            hostedFields.submit().then(function(payload) {
+            hostedFields.submit({
+              contingencies: ['3D_SECURE']
+            }).then(function(payload) {
+              // @todo: Implement 3D secure verification.
               return Drupal.paypalCheckout.makeCall(Drupal.paypalCheckout.onSubmitUrl, {
                 type: 'POST',
                 contentType: "application/json; charset=utf-8",
