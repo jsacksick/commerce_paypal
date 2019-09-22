@@ -36,7 +36,7 @@ interface CheckoutInterface extends OffsitePaymentGatewayInterface, SupportsAuth
    * @return string
    *   The payment solution.
    */
-  public function getSolution();
+  public function getPaymentSolution();
 
   /**
    * Creates a payment.

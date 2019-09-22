@@ -87,6 +87,7 @@ class CustomCardFieldsBuilder implements CustomCardFieldsBuilderInterface {
     ];
     $element += [
       '#theme' => 'commerce_paypal_checkout_custom_card_fields',
+      '#weight' => 0,
     ];
     return $element;
   }

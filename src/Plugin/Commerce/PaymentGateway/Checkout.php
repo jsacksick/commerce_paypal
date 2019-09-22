@@ -404,7 +404,19 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * {@inheritdoc}
    */
-  public function getSolution() {
+  public function collectsBillingInformation() {
+    // Collecting a billing profile is required when selecting the
+    // "PayPal custom card fields" payment solution.
+    if ($this->getPaymentSolution() == 'custom_card_fields') {
+      return TRUE;
+    }
+    return parent::collectsBillingInformation();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPaymentSolution() {
     return $this->configuration['payment_solution'];
   }
 
