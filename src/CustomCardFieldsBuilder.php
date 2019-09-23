@@ -30,9 +30,9 @@ class CustomCardFieldsBuilder implements CustomCardFieldsBuilderInterface {
   protected $logger;
 
   /**
-   * Constructs a new HostedFieldsBuilder object.
+   * Constructs a new CustomCardFieldsBuilder object.
    *
-   * @param \Drupal\commerce_paypal\CheckoutSdkFactoryInterface
+   * @param \Drupal\commerce_paypal\CheckoutSdkFactoryInterface $checkout_sdk_factory
    *   The PayPal Checkout SDK factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger channel.

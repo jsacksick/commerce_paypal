@@ -18,6 +18,7 @@ interface CheckoutSdkInterface {
    * Gets a client token.
    *
    * @return \Psr\Http\Message\ResponseInterface
+   *   The HTTP response.
    */
   public function getClientToken();
 

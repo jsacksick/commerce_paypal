@@ -21,7 +21,7 @@ class PaymentOffsiteForm extends BasePaymentOffsiteForm {
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $this->entity;
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    if ($payment_gateway_plugin->getPaymentSolution() == 'smart_payment_buttons'){
+    if ($payment_gateway_plugin->getPaymentSolution() == 'smart_payment_buttons') {
       $form['paypal_smart_payment_buttons'] = $builder->build($payment->getOrder(), $payment->getPaymentGateway(), TRUE);
       return $form;
     }

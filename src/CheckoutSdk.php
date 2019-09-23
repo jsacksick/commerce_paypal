@@ -12,7 +12,6 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
