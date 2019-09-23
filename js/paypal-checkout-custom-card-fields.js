@@ -84,7 +84,10 @@
             contingencies: ['3D_SECURE']
           }).then(function(payload) {
             if (!payload.hasOwnProperty('orderId')) {
+              message += Drupal.t('Please check your details and try again.');
+              $messagesContainer.html(Drupal.theme('commercePaypalError', message));
               $submit.attr("disabled", false);
+              Drupal.paypalCheckout.removeLoader();
             }
             else {
               event.currentTarget.submit();
@@ -112,6 +115,9 @@
       var $loader = $('<div class="paypal-background-overlay-loader"></div>');
       $background.append($loader);
       $('body').append($background);
+    },
+    removeLoader: function() {
+      $('body').remove('#paypal-background-overlay');
     }
   };
 
