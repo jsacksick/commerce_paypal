@@ -19,7 +19,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\profile\Entity\ProfileInterface;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\BadResponseException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -336,7 +336,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $sdk->getAccessToken();
       $this->messenger()->addMessage($this->t('Connectivity to PayPal successfully verified.'));
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       $this->messenger()->addError($this->t('Invalid client_id or secret specified.'));
       $form_state->setError($form['credentials']['client_id']);
       $form_state->setError($form['credentials']['secret']);
@@ -410,7 +410,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
         $request = $sdk->getOrder($remote_id);
         $paypal_order = Json::decode($request->getBody()->getContents());
       }
-      catch (ClientException $exception) {
+      catch (BadResponseException $exception) {
         throw new PaymentGatewayException($exception->getMessage());
       }
       if (!in_array($paypal_order['status'], ['APPROVED', 'SAVED'])) {
@@ -436,7 +436,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
         }
       }
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       throw new PaymentGatewayException($exception->getMessage());
     }
     $remote_state = strtolower($remote_payment['status']);
@@ -494,7 +494,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $response = $sdk->capturePayment($remote_id, $params);
       $response = Json::decode($response->getBody()->getContents());
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while capturing the authorized payment.');
     }
@@ -520,7 +520,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $sdk = $this->checkoutSdkFactory->get($this->configuration);
       $response = $sdk->voidPayment($payment->getRemoteId());
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while voiding the payment.');
     }
@@ -558,7 +558,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $response = $sdk->refundPayment($payment->getRemoteId(), $params);
       $response = Json::decode($response->getBody()->getContents());
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       $this->logger->error($exception->getMessage());
       throw new PaymentGatewayException('An error occurred while refunding the payment.');
     }
@@ -584,7 +584,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $request = $sdk->getOrder($body['id']);
       $paypal_order = Json::decode($request->getBody()->getContents());
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       throw new PaymentGatewayException('Could not load the order from PayPal.');
     }
     $paypal_amount = $paypal_order['purchase_units'][0]['amount'];

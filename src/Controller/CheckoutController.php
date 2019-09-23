@@ -13,7 +13,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Url;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\BadResponseException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -118,7 +118,7 @@ class CheckoutController extends ControllerBase {
       $body = Json::decode($response->getBody()->getContents());
       return new JsonResponse(['id' => $body['id']]);
     }
-    catch (ClientException $exception) {
+    catch (BadResponseException $exception) {
       $this->logger->error($exception->getMessage());
       return new Response('', Response::HTTP_BAD_REQUEST);
     }
