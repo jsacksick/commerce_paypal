@@ -65,7 +65,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * The logger.
    *
-   * @var \Psr\Log\LoggerInterface $logger
+   * @var \Psr\Log\LoggerInterface
    */
   protected $logger;
 
@@ -533,7 +533,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
   /**
    * {@inheritdoc}
    */
-  public function refundPayment(PaymentInterface $payment, Price $amount = null) {
+  public function refundPayment(PaymentInterface $payment, Price $amount = NULL) {
     $this->assertPaymentState($payment, ['completed', 'partially_refunded']);
     // If not specified, refund the entire amount.
     $amount = $amount ?: $payment->getAmount();
@@ -637,7 +637,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
    * Map a PayPal payment state to a local one.
    *
    * @param string $type
-   *   The payment type. One of "authorize" or "capture"
+   *   The payment type. One of "authorize" or "capture".
    * @param string $remote_state
    *   The PayPal remote payment state.
    *
@@ -666,7 +666,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
-   * @param $type
+   * @param string $type
    *   The type (billing|profile).
    * @param array $paypal_order
    *   The PayPal order.
@@ -676,7 +676,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       /** @var \Drupal\profile\Entity\ProfileInterface $profile */
       $profile = $order->getBillingProfile() ?: $this->buildCustomerProfile($order);
       $profile->address->given_name = $paypal_order['payer']['name']['given_name'];
-      $profile->address->family_name =  $paypal_order['payer']['name']['surname'];
+      $profile->address->family_name = $paypal_order['payer']['name']['surname'];
       if (isset($paypal_order['payer']['address'])) {
         $this->populateProfile($profile, $paypal_order['payer']['address']);
       }
@@ -713,7 +713,7 @@ class Checkout extends OffsitePaymentGatewayBase implements CheckoutInterface {
       $given_name = array_shift($names);
       $family_name = implode(' ', $names);
       $profile->address->given_name = $given_name;
-      $profile->address->family_name =  $family_name;
+      $profile->address->family_name = $family_name;
       if (!empty($shipping_info['address'])) {
         $this->populateProfile($profile, $shipping_info['address']);
       }

@@ -73,10 +73,10 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
    *   The handler stack.
    * @param \Drupal\commerce_order\AdjustmentTransformerInterface $adjustment_transformer
    *   The adjustment transformer.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
    */

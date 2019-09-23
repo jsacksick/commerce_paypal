@@ -54,7 +54,7 @@ function commerce_paypal_form_views_form_commerce_cart_form_default_alter(&$form
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter(). for commerce_checkout_flow.
+ * Implements hook_form_BASE_FORM_ID_alter() for commerce_checkout_flow.
  */
 function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInterface $form_state) {
   if (isset($form['payment_information']['#payment_options'])) {

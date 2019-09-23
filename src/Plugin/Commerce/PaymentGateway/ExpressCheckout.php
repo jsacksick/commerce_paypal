@@ -866,7 +866,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * Returns a mapping of PayPal payment statuses to payment states.
    *
-   * @param $status
+   * @param string $status
    *   (optional) The PayPal payment status.
    *
    * @return array|string

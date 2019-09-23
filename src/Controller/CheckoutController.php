@@ -35,14 +35,14 @@ class CheckoutController extends ControllerBase {
   /**
    * The entity type manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
 
   /**
    * The logger.
    *
-   * @var \Psr\Log\LoggerInterface $logger
+   * @var \Psr\Log\LoggerInterface
    */
   protected $logger;
 
@@ -87,7 +87,7 @@ class CheckoutController extends ControllerBase {
   /**
    * Create/update the order in PayPal.
    *
-   * @param PaymentGatewayInterface $commerce_payment_gateway
+   * @param \Drupal\commerce_payment\Entity\PaymentGatewayInterface $commerce_payment_gateway
    *   The payment gateway.
    * @param \Drupal\commerce_order\Entity\OrderInterface $commerce_order
    *   The order.

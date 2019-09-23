@@ -39,7 +39,7 @@ class PayPalCheckout extends CheckoutFlowWithPanesBase {
   /**
    * {@inheritdoc}
    */
-  public function getPanes(){
+  public function getPanes() {
     $panes = parent::getPanes();
     // Create a blacklist of panes we disallow adding to steps.
     $black_list = [

@@ -203,6 +203,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
+   *
    * @return array
    *   An array suitable for use in the create|update order API calls.
    */
@@ -352,7 +353,7 @@ class CheckoutSdk implements CheckoutSdkInterface {
    *   The adjustment types to include in the calculation.
    *   Examples: fee, promotion, tax. Defaults to all adjustment types.
    *
-   * @return \Drupal\commerce_price\Price|NULL
+   * @return \Drupal\commerce_price\Price|null
    *   The adjustments total, or NULL if no matching adjustments were found.
    */
   protected function getAdjustmentsTotal(array $adjustments, array $adjustment_types = []) {
