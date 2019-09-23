@@ -17,7 +17,7 @@ class ClientCredentials extends BaseClientCredentials {
 
     // Store the token retrieved for later reuse (to make sure we don't request
     // for a new one on each API request).
-    \Drupal::state()->set('commerce_paypal.oauth2_token', [
+    \Drupal::state()->set($this->config['token_key'], [
       'token' => $token->getToken(),
       'expires' => $token->getExpires()->getTimestamp(),
     ]);

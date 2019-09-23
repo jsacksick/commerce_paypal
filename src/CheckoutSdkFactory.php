@@ -129,18 +129,22 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
       ],
     ];
     $client = $this->clientFactory->fromOptions($options);
+    // Generates a key for storing the OAuth2 token retrieved from PayPal.
+    // This is useful in case multiple PayPal checkout gateway instances are
+    // configured.
+    $token_key = 'commerce_paypal.oauth2_token.' . md5($config['client_id'] . $config['secret']);
     $config = [
       ClientCredentials::CONFIG_CLIENT_ID => $config['client_id'],
       ClientCredentials::CONFIG_CLIENT_SECRET => $config['secret'],
       ClientCredentials::CONFIG_TOKEN_URL => '/v1/oauth2/token',
+      'token_key' => $token_key,
     ];
     $grant_type = new ClientCredentials($client, $config);
     $middleware = new OAuthMiddleware($client, $grant_type);
-    // Check if we've already requested an oauth2 token, note that we do not
+    // Check if we've already requested an OAuth2 token, note that we do not
     // need to check for the expires timestamp here as the middleware is already
     // taking care of that.
-    // @todo: This should support multiple tokens.
-    $token = $this->state->get('commerce_paypal.oauth2_token');
+    $token = $this->state->get($token_key);
     if (!empty($token)) {
       $middleware->setAccessToken($token['token'], 'client_credentials', $token['expires']);
     }
