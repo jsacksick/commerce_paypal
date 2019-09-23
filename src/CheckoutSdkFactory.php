@@ -122,10 +122,11 @@ class CheckoutSdkFactory implements CheckoutSdkFactoryInterface {
         $base_uri = 'https://api.sandbox.paypal.com';
         break;
     }
+    $attribution_id = (isset($config['payment_solution']) && $config['payment_solution'] == 'custom_card_fields') ? 'Centarro_Commerce_PCP' : 'CommerceGuys_Cart_SPB';
     $options = [
       'base_uri' => $base_uri,
       'headers' => [
-        'PayPal-Partner-Attribution-Id' => 'CommerceGuys_Cart_SPB',
+        'PayPal-Partner-Attribution-Id' => $attribution_id,
       ],
     ];
     $client = $this->clientFactory->fromOptions($options);
