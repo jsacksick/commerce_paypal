@@ -5,6 +5,7 @@
  * Implements PayPal payment services for use with Drupal Commerce.
  */
 
+use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway\CheckoutInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
@@ -60,7 +61,8 @@ function commerce_paypal_form_commerce_checkout_flow_alter(&$form, FormStateInte
   if (isset($form['payment_information']['#payment_options'])) {
     /** @var \Drupal\commerce_payment\PaymentOption $payment_option */
     foreach ($form['payment_information']['#payment_options'] as $id => $payment_option) {
-      if ($payment_option->getPaymentGatewayId() != 'paypal_checkout') {
+      $payment_gateway = PaymentGateway::load($payment_option->getPaymentGatewayId());
+      if (!$payment_gateway->getPlugin() instanceof CheckoutInterface) {
         continue;
       }
       $form['payment_information']['payment_method']['#options'][$id] = Markup::create('<img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-small.png" alt="PayPal Acceptance" style="vertical-align: middle">');
